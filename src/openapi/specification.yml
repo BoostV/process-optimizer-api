@@ -7,6 +7,22 @@ servers:
   - url: http://localhost:9090/v1.0
 
 paths:
+  /optimizer:
+    get:
+      description: Run optimizer with the specified parameters
+      operationId: optimizer.run
+      responses:
+        '200':
+          description: Result of running the optimizer with the specified parameters
+      parameters:
+        - name: params
+          in: query
+          description: Parameters for the optimizer
+          required: false
+          schema:
+            type: string
+            example: "test"
+
   /greeting/{name}:
     post:
       summary: Generate greeting
