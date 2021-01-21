@@ -13,6 +13,6 @@ Alternatively the project can be build and run with the following commands:
 
 # TODO
 
-- [ ] Add link to ProcessOptimizer
-- [ ] Implement simple API endpoint
+- [ ] Understand parameters for ProcessOptimizer
+- [ ] Define result/graph endpoints
 - [ ] Define more tasks :)
