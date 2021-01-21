@@ -1,6 +1,6 @@
 # Process Optimizer REST API #
 
-This project expose a REST based API for ProcessOptimizer 
+This project expose a REST based API for [ProcessOptimizer](https://github.com/novonordisk-research/ProcessOptimizer)
 
 # How do I get started
 
