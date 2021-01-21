@@ -1,9 +1,8 @@
 # First stage
 FROM python:3.9.1 AS builder
 
-ENV VIRTUAL_ENV=/opt/venv
-RUN python3 -m venv ${VIRTUAL_ENV}
-ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
 
 RUN pip install --upgrade pip && pip install pip-tools
 
@@ -12,7 +11,7 @@ RUN pip install -r requirements.txt
 
 # Second stage
 FROM python:3.9.1-slim
-COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+COPY --from=builder /opt/venv /opt/venv
 WORKDIR /code
 
 # add non-root user
