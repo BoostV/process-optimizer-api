@@ -13,8 +13,3 @@ Alternatively the project can be build and run with the following commands:
 
 Now open [http://localhost:9090/v1.0/ui/](http://localhost:9090/v1.0/ui/) in a browser to explore the API through Swagger UI
 
-# TODO
-
-- [ ] Understand parameters for ProcessOptimizer
-- [ ] Define result/graph endpoints
-- [ ] Define more tasks :)
