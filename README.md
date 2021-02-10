@@ -8,8 +8,12 @@ If you have Docker installed the API can be started locally by running the scrip
 
 Alternatively the project can be build and run with the following commands:
 
+    python3 -m venv env
+    source env/bin/activate
+    pip install --upgrade pip
+    
     pip install -r requirements.txt
-    python src/server.py
+    python optimizerapi/server.py
 
 Now open [http://localhost:9090/v1.0/ui/](http://localhost:9090/v1.0/ui/) in a browser to explore the API through Swagger UI
 

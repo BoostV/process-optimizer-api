@@ -20,7 +20,7 @@ RUN chown -R user:user /code && chmod -R 755 /code
 
 USER user
 
-COPY src/ /code
+COPY optimizerapi/ /code
 
 ENV PATH=/opt/venv/bin:${PATH}
 
