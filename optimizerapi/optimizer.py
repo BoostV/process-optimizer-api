@@ -29,16 +29,16 @@ def run(body) -> str:
         a JSON encoded string representation of the result.
     """
     # TODO generate space, i.e., an array of either options for categories or tuples of (min, max) for value types
-    # Receive: {'data': [{'Xi': [0], 'Yi': 0}], 'optimizerConfig': {'acqFunc': 'string', 'baseEstimater': 'string', 'initialPoints': 0, 'kappa': 0, 'xi': 0}}
+    # Receive: {'data': [{'Xi': [0], 'Yi': 0}], 'optimizerConfig': {'acqFunc': 'string', 'baseEstimator': 'string', 'initialPoints': 0, 'kappa': 0, 'xi': 0}}
 
     data = body["data"]
-    space = zip(body["optimizerConfig"]["space"])
+    #space = zip(body["optimizerConfig"]["space"])
     space=[(0,1)]
     hyperparams = {
         'base_estimator': body["optimizerConfig"]["baseEstimator"],
         'acq_func': body["optimizerConfig"]["acqFunc"],
         'n_initial_points': body["optimizerConfig"]["initialPoints"],
-        'acq_func_kwargs': {'kappa': body["optimizerConfig"]["kappa"], 'xi': body["optimizerConfig"]["xi"], 'yi': body["optimizerConfig"]["yi"]}
+        'acq_func_kwargs': {'kappa': body["optimizerConfig"]["kappa"], 'xi': body["optimizerConfig"]["xi"]}
     }
     optimizer = Optimizer(space, **hyperparams)
     if data:
