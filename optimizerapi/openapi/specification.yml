@@ -51,7 +51,7 @@ components:
             acqFunc: 
               type: string
             initialPoints:
-              type: number
+              type: integer
             kappa:
               type: number
             xi:
