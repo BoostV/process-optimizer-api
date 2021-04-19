@@ -9,11 +9,20 @@ import io
 from numbers import Number
 import numpy
 numpy.random.seed(42)
+"""ProcessOptimizer web request handler
 
-def post_hyperparams(hyperparams: str) -> str:
-    return 'Hello {name}'.format(name=hyperparams)
-
+This file contains the main HTTP request handlers for exposing the ProcessOptimizer API.
+The handler functions are mapped to the OpenAPI specification through the "operationId" field
+in the specification.yml file found in the folder "openapi" in the root of this project.
+"""
 def run(params: str = None, Xi: [float] = [0.01], yi: [Number] = [1], kappa: float = 1.96) -> str:
+    """Executes the ProcessOptimizer
+    
+    Returns
+    -------
+    str
+        a JSON encoded string representation of the result.
+    """
     # TODO generate space, i.e., an array of either options for categories or tuples of (min, max) for value types
     space = [(0,1)]
     hyperparams = {
@@ -24,13 +33,32 @@ def run(params: str = None, Xi: [float] = [0.01], yi: [Number] = [1], kappa: flo
     }
     optimizer = Optimizer(space, **hyperparams)
     # TODO call optimizer with proper Xi and Yi values
+    result = optimizer.tell([Xi], yi)
+    
+    response = processResult(result)
+
+    return dumps(response)
+
+def processResult(result):
+    """Extracts results from the OptimizerResult.
+
+    Returns
+    -------
+    dict
+        a dictionary containing results and plots.
+        The dictionary has this structure:
+        {
+            plots: [{id: plotname, plot: BASE64 encoded png}],
+            result: { dict with relevant properties, e.g., 
+                suggestions for next experiment, 
+                model representation etc.}
+        }
+    """
     response = {
         "plots": []
     }
     prettyResult = {}
     response["result"] = prettyResult
-    
-    result = optimizer.tell([Xi], yi)
 
     ##################### Copied and modified from views.py::view_report #####################
 
@@ -61,9 +89,20 @@ def run(params: str = None, Xi: [float] = [0.01], yi: [Number] = [1], kappa: flo
     #plot_objective(result, dimensions=dimensions, usepartialdependence=False)
     #addPlot(result, "objective", debug=True)
 
-    return dumps(response)
-
 def addPlot(result, id="generic", close=True, debug=False):
+    """Add the current figure to result as a base64 encoded string.
+    
+    Parameters
+    ----------
+    result : dict
+        The result to which plots are added.
+    id : str
+        Identifier for the plot (default is "generic")
+    debug : bool
+        Indicate if plots should be written to local files. 
+        If set to True plots are stored in tmp/process_optimizer_[id].png
+        relative to current working directory. (default is False)
+    """
     pic_IObytes = io.BytesIO()
     plt.savefig(pic_IObytes,  format='png')
     pic_IObytes.seek(0)
