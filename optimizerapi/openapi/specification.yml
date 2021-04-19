@@ -14,6 +14,11 @@ paths:
       responses:
         '200':
           description: Result of running the optimizer with the specified parameters
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: hello
       parameters:
         - name: params
           in: query
@@ -21,4 +26,25 @@ paths:
           required: false
           schema:
             type: string
-            example: "test"
+            example: "[1,2,3]"
+        - name: Xi
+          in: query
+          description: "Xi value to be passed to ProcessOptimizer"
+          required: false
+          schema:
+            type: number
+            example: 0.01
+        - name: yi
+          in: query
+          description: "yi value to be passed to ProcessOptimizer"
+          required: false
+          schema:
+            type: number
+            example: 1.0
+        - name: kappa
+          in: query
+          description: "Kappa value to be passed to ProcessOptimizer"
+          required: false
+          schema:
+            type: number
+            example: 1.96

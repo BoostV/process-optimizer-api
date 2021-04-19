@@ -20,7 +20,7 @@ def run(params: str = None, Xi: [float] = [0.01], yi: [Number] = [1], kappa: flo
     }
     optimizer = Optimizer(space, **hyperparams)
     # TODO call optimizer with proper Xi and Yi values
-    result = optimizer.tell(Xi, yi)
+    result = optimizer.tell([Xi], yi)
     if params:
         return 'Run with {params} = {result}'.format(params=params, result=result)
     else:
