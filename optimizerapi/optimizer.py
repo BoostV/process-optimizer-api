@@ -35,12 +35,20 @@ def run(params: str = None, Xi: [float] = [0.01], yi: [Number] = [1], kappa: flo
     # TODO call optimizer with proper Xi and Yi values
     result = optimizer.tell([Xi], yi)
     
-    response = processResult(result)
+    response = processResult(result, optimizer)
 
     return dumps(response)
 
-def processResult(result):
+def processResult(result, optimizer):
     """Extracts results from the OptimizerResult.
+
+    Parameters
+    ----------
+    result : OptimizerResult
+        The result as it is returned from Optimizer.tell
+    optimizer : ProcessOptimizer
+        The instance used during the run. It contains the run configuration
+        and parameters used.
 
     Returns
     -------
@@ -88,6 +96,7 @@ def processResult(result):
     #     dimensions.append(var.name[:20])           
     #plot_objective(result, dimensions=dimensions, usepartialdependence=False)
     #addPlot(result, "objective", debug=True)
+    return response
 
 def addPlot(result, id="generic", close=True, debug=False):
     """Add the current figure to result as a base64 encoded string.
