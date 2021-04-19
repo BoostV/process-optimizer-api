@@ -100,13 +100,20 @@ def processResult(result, optimizer):
 
 def addPlot(result, id="generic", close=True, debug=False):
     """Add the current figure to result as a base64 encoded string.
+
+    This function should be called after every plot that is generated.
+    It takes the current state of the figure canvas and writes it to
+    a base64 encoded string which is then appended to the list supplied.
     
     Parameters
     ----------
-    result : dict
-        The result to which plots are added.
+    result : list
+        The list of plots to which new plots should be addeed.
     id : str
         Identifier for the plot (default is "generic")
+    close : bool
+        If set to True the current matplot figure is cleared after the plot
+        has been saved. (default is True)
     debug : bool
         Indicate if plots should be written to local files. 
         If set to True plots are stored in tmp/process_optimizer_[id].png
