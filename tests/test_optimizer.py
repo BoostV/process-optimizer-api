@@ -5,4 +5,4 @@ def test_first_sample():
     yi = 1
     result = optimizer.run(params="{}", Xi=Xi, yi=yi)
     print(result)
-    assert "Run with" in result
+    assert "plots" in result
