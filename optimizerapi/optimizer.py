@@ -15,7 +15,12 @@ This file contains the main HTTP request handlers for exposing the ProcessOptimi
 The handler functions are mapped to the OpenAPI specification through the "operationId" field
 in the specification.yml file found in the folder "openapi" in the root of this project.
 """
-def run(params: str = None, Xi: [float] = [0.01], yi: [Number] = [1], kappa: float = 1.96) -> str:
+
+# def run(body) -> str:
+#     print("Receive: " + body)
+# def run(data: [([float], Number)] = [], space: [(float, float)] = [(0,1)], xi: float = 0.01, yi: Number = 1, kappa: float = 1.96) -> str:
+
+def run(body) -> str:
     """Executes the ProcessOptimizer
     
     Returns
@@ -24,18 +29,29 @@ def run(params: str = None, Xi: [float] = [0.01], yi: [Number] = [1], kappa: flo
         a JSON encoded string representation of the result.
     """
     # TODO generate space, i.e., an array of either options for categories or tuples of (min, max) for value types
-    space = [(0,1)]
+    # Receive: {'data': [{'Xi': [0], 'Yi': 0}], 'optimizerConfig': {'acqFunc': 'string', 'baseEstimater': 'string', 'initialPoints': 0, 'kappa': 0, 'xi': 0}}
+
+    data = body["data"]
+    space = zip(body["optimizerConfig"]["space"])
+    space=[(0,1)]
     hyperparams = {
-        'base_estimator': 'GP',
-        'acq_func': 'gp_hedge',
-        'n_initial_points': 3,
-        'acq_func_kwargs': {'kappa': kappa, 'Xi': Xi, 'yi': yi}
+        'base_estimator': body["optimizerConfig"]["baseEstimator"],
+        'acq_func': body["optimizerConfig"]["acqFunc"],
+        'n_initial_points': body["optimizerConfig"]["initialPoints"],
+        'acq_func_kwargs': {'kappa': body["optimizerConfig"]["kappa"], 'xi': body["optimizerConfig"]["xi"], 'yi': body["optimizerConfig"]["yi"]}
     }
     optimizer = Optimizer(space, **hyperparams)
-    # TODO call optimizer with proper Xi and Yi values
-    result = optimizer.tell([Xi], yi)
-    
-    response = processResult(result, optimizer)
+    if data:
+        Xi = []
+        Yi = []
+        for run in data:
+            Xi.append(run["Xi"])
+            Yi.append(run["Yi"])
+        # Xi, Yi = map(list, zip(*data))
+        result = optimizer.tell(Xi, Yi)
+        response = processResult(result, optimizer)
+    else:
+        response = {}
 
     return dumps(response)
 
@@ -67,14 +83,11 @@ def processResult(result, optimizer):
     }
     prettyResult = {}
     response["result"] = prettyResult
+    
+    prettyResult["next"] = optimizer.ask(n_points=1)[0]
 
     ##################### Copied and modified from views.py::view_report #####################
 
-    next_exps = optimizer.ask(n_points=1)
-    prettyResult["next"] = next_exps
-
-    header_list = []
-    result_list = []
     if "expected_minimum" in result:
         temp_exp_min =[]
         for entry,value in zip(header_list[:-1], result.expected_minimum[0]):
@@ -82,15 +95,12 @@ def processResult(result, optimizer):
         exp_min_out = {'value':temp_exp_min, 'result':result.expected_minimum[1]}
         prettyResult['expected_minimum'] = exp_min_out
 
-    prettyResult['input_header'] = header_list   
-    prettyResult['input_values'] = result_list
-
     ##################### END #####################
 
     plot_convergence(result)
-    addPlot(response["plots"], "convergence")
+    # addPlot(response["plots"], "convergence")
 
-    dimensions = []
+    # dimensions = []
     # names = result['config'].gen_opt_vars(result, request)
     # for var in names:
     #     dimensions.append(var.name[:20])           

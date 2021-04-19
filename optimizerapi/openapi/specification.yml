@@ -8,7 +8,7 @@ servers:
 
 paths:
   /optimizer:
-    get:
+    post:
       description: Run optimizer with the specified parameters
       operationId: optimizer.run
       responses:
@@ -19,32 +19,54 @@ paths:
               schema:
                 type: string
                 example: hello
-      parameters:
-        - name: params
-          in: query
-          description: Parameters for the optimizer
-          required: false
-          schema:
-            type: string
-            example: "[1,2,3]"
-        - name: Xi
-          in: query
-          description: "Xi value to be passed to ProcessOptimizer"
-          required: false
-          schema:
-            type: number
-            example: 0.01
-        - name: yi
-          in: query
-          description: "yi value to be passed to ProcessOptimizer"
-          required: false
-          schema:
-            type: number
-            example: 1.0
-        - name: kappa
-          in: query
-          description: "Kappa value to be passed to ProcessOptimizer"
-          required: false
-          schema:
-            type: number
-            example: 1.96
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/experiment'
+
+components:
+  schemas:
+    experiment:
+      title: An experiment definition
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              Xi:
+                type: array
+                items:
+                  type: number
+              Yi:
+                type: number
+        optimizerConfig:
+          type: object
+          properties:
+            baseEstimator:
+              type: string
+            acqFunc: 
+              type: string
+            initialPoints:
+              type: number
+            kappa:
+              type: number
+            xi:
+              type: number
+            yi:
+              type: number
+            space:
+              type: array
+              items:
+                type: object
+                properties:
+                  from:
+                    type: number
+                  to:
+                    type: number
+      required:
+        - data
+        - optimizerConfig
