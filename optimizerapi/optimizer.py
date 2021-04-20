@@ -1,5 +1,3 @@
-import codecs
-import pickle
 import json
 from json_tricks import dumps
 from ProcessOptimizer import Optimizer, expected_minimum
@@ -10,6 +8,8 @@ import matplotlib.pyplot as plt
 import base64
 import io 
 from numbers import Number
+from .securepickle import pickleToString, unpickleFromString
+
 import numpy
 numpy.random.seed(42)
 """ProcessOptimizer web request handler
@@ -18,13 +18,6 @@ This file contains the main HTTP request handlers for exposing the ProcessOptimi
 The handler functions are mapped to the OpenAPI specification through the "operationId" field
 in the specification.yml file found in the folder "openapi" in the root of this project.
 """
-def pickleToString(obj):
-    pickled = codecs.encode(pickle.dumps(obj), "base64").decode()
-    return pickled
-
-def unpickleFromString(pickled):
-    unpickled = pickle.loads(codecs.decode(pickled.encode(), "base64"))
-    return unpickled
 
 def run(body) -> dict:
     """Executes the ProcessOptimizer
