@@ -76,13 +76,15 @@ components:
       type: object
       properties:
         plots:
-          type: object
-          properties:
-            id:
-              type: string
-            plot:
-              description: A base64 encoded png representation of the plot
-              type: string
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              plot:
+                description: A base64 encoded png representation of the plot
+                type: string
         result:
           type: object
           properties:
