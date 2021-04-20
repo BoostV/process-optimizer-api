@@ -29,11 +29,10 @@ def run(body) -> str:
         a JSON encoded string representation of the result.
     """
     # TODO generate space, i.e., an array of either options for categories or tuples of (min, max) for value types
-    # Receive: {'data': [{'Xi': [0], 'Yi': 0}], 'optimizerConfig': {'acqFunc': 'string', 'baseEstimator': 'string', 'initialPoints': 0, 'kappa': 0, 'xi': 0}}
-
-    data = body["data"]
-    #space = zip(body["optimizerConfig"]["space"])
-    space=[(0,1)]
+    # Receive: {'data': [{'xi': [0], 'xi': 0}], 'optimizerConfig': {'acqFunc': 'string', 'baseEstimator': 'string', 'initialPoints': 0, 'kappa': 0, 'xi': 0}}
+    print("Receive: " + str(body))
+    data = [(run["xi"], run["yi"]) for run in body["data"]]
+    space = [(x["from"], x["to"]) for x in body["optimizerConfig"]["space"]]
     hyperparams = {
         'base_estimator': body["optimizerConfig"]["baseEstimator"],
         'acq_func': body["optimizerConfig"]["acqFunc"],
@@ -42,12 +41,12 @@ def run(body) -> str:
     }
     optimizer = Optimizer(space, **hyperparams)
     if data:
-        Xi = []
-        Yi = []
-        for run in data:
-            Xi.append(run["Xi"])
-            Yi.append(run["Yi"])
-        # Xi, Yi = map(list, zip(*data))
+        # Xi = []
+        # Yi = []
+        # for run in data:
+        #     Xi.append(run["Xi"])
+        #     Yi.append(run["Yi"])
+        Xi, Yi = map(list, zip(*data))
         result = optimizer.tell(Xi, Yi)
         response = processResult(result, optimizer)
     else:

@@ -37,11 +37,11 @@ components:
           items:
             type: object
             properties:
-              Xi:
+              xi:
                 type: array
                 items:
                   type: number
-              Yi:
+              yi:
                 type: number
         optimizerConfig:
           type: object
