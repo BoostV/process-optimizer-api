@@ -30,9 +30,9 @@ def run(body) -> str:
     """
     # TODO generate space, i.e., an array of either options for categories or tuples of (min, max) for value types
     # Receive: {'data': [{'xi': [0], 'xi': 0}], 'optimizerConfig': {'acqFunc': 'string', 'baseEstimator': 'string', 'initialPoints': 0, 'kappa': 0, 'xi': 0}}
-    # print("Receive: " + str(body))
+    print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
-    space = [(x["name"], x["from"], x["to"]) for x in body["optimizerConfig"]["space"]]
+    space = [(x["from"], x["to"]) for x in body["optimizerConfig"]["space"]]
     dimensions = [x["name"] for x in body["optimizerConfig"]["space"]]
     hyperparams = {
         'base_estimator': body["optimizerConfig"]["baseEstimator"],
