@@ -63,6 +63,8 @@ components:
               items:
                 type: object
                 properties:
+                  name: 
+                    type: string
                   from:
                     type: number
                   to:

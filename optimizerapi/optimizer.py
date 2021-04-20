@@ -32,7 +32,8 @@ def run(body) -> str:
     # Receive: {'data': [{'xi': [0], 'xi': 0}], 'optimizerConfig': {'acqFunc': 'string', 'baseEstimator': 'string', 'initialPoints': 0, 'kappa': 0, 'xi': 0}}
     # print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
-    space = [(x["from"], x["to"]) for x in body["optimizerConfig"]["space"]]
+    space = [(x["name"], x["from"], x["to"]) for x in body["optimizerConfig"]["space"]]
+    dimensions = [x["name"] for x in body["optimizerConfig"]["space"]]
     hyperparams = {
         'base_estimator': body["optimizerConfig"]["baseEstimator"],
         'acq_func': body["optimizerConfig"]["acqFunc"],
@@ -44,13 +45,13 @@ def run(body) -> str:
     if data and len(data) > 1:
         Xi, Yi = map(list, zip(*data))
         result = optimizer.tell(Xi, Yi)
-        response = processResult(result, optimizer)
+        response = processResult(result, optimizer, dimensions)
     else:
         response = {}
 
     return dumps(response)
 
-def processResult(result, optimizer):
+def processResult(result, optimizer, dimensions):
     """Extracts results from the OptimizerResult.
 
     Parameters
@@ -60,6 +61,8 @@ def processResult(result, optimizer):
     optimizer : ProcessOptimizer
         The instance used during the run. It contains the run configuration
         and parameters used.
+    dimensions : list
+        List of dimension names ordered to match space descriptor
 
     Returns
     -------
@@ -95,7 +98,6 @@ def processResult(result, optimizer):
     plot_convergence(result)
     addPlot(response["plots"], "convergence")
 
-    dimensions = ["dim1", "dim2"]
     plot_objective(result, dimensions=dimensions, usepartialdependence=False)
     addPlot(response["plots"], "objective", debug=True)
     return response
