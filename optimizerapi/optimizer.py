@@ -1,3 +1,5 @@
+import codecs
+import pickle
 import json
 from json_tricks import dumps
 from ProcessOptimizer import Optimizer, expected_minimum
@@ -16,10 +18,6 @@ This file contains the main HTTP request handlers for exposing the ProcessOptimi
 The handler functions are mapped to the OpenAPI specification through the "operationId" field
 in the specification.yml file found in the folder "openapi" in the root of this project.
 """
-
-# def run(body) -> str:
-#     print("Receive: " + body)
-# def run(data: [([float], Number)] = [], space: [(float, float)] = [(0,1)], xi: float = 0.01, yi: Number = 1, kappa: float = 1.96) -> str:
 
 def run(body) -> dict:
     """Executes the ProcessOptimizer
@@ -93,7 +91,6 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
     response["result"] = prettyResult
     
     prettyResult["next"] = optimizer.ask(n_points=1) # TODO Hent n_points fra brugeren
-    print(str(response))
 
     ##################### Copied and modified from views.py::view_report #####################
 
@@ -114,6 +111,8 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
 
         plot_objective(result, dimensions=dimensions, usepartialdependence=False)
         addPlot(response["plots"], "objective", debug=True)
+    
+    print(str(response))
     return response
 
 def addPlot(result, id="generic", close=True, debug=False):
