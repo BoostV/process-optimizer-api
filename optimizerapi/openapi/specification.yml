@@ -38,8 +38,6 @@ components:
             properties:
               xi:
                 type: array
-                items:
-                  type: number
               yi:
                 type: number
         optimizerConfig:
