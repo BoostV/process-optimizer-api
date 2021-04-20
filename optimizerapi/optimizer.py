@@ -18,6 +18,13 @@ This file contains the main HTTP request handlers for exposing the ProcessOptimi
 The handler functions are mapped to the OpenAPI specification through the "operationId" field
 in the specification.yml file found in the folder "openapi" in the root of this project.
 """
+def pickleToString(obj):
+    pickled = codecs.encode(pickle.dumps(obj), "base64").decode()
+    return pickled
+
+def unpickleFromString(pickled):
+    unpickled = pickle.loads(codecs.decode(pickled.encode(), "base64"))
+    return unpickled
 
 def run(body) -> dict:
     """Executes the ProcessOptimizer
@@ -113,6 +120,7 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
         addPlot(response["plots"], "objective", debug=True)
     
     print(str(response))
+    response["pickle"] = pickleToString(result)
     return response
 
 def addPlot(result, id="generic", close=True, debug=False):
