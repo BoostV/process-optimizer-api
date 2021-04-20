@@ -93,14 +93,11 @@ def processResult(result, optimizer):
     ##################### END #####################
 
     plot_convergence(result)
-    # addPlot(response["plots"], "convergence")
+    addPlot(response["plots"], "convergence")
 
-    # dimensions = []
-    # names = result['config'].gen_opt_vars(result, request)
-    # for var in names:
-    #     dimensions.append(var.name[:20])           
-    #plot_objective(result, dimensions=dimensions, usepartialdependence=False)
-    #addPlot(result, "objective", debug=True)
+    dimensions = ["dim1", "dim2"]
+    plot_objective(result, dimensions=dimensions, usepartialdependence=False)
+    addPlot(response["plots"], "objective", debug=True)
     return response
 
 def addPlot(result, id="generic", close=True, debug=False):
