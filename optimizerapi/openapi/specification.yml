@@ -19,6 +19,9 @@ paths:
               schema:
                 type: string
                 example: hello
+            application/json:
+              schema:
+                $ref: '#/components/schemas/result'
       requestBody:
         required: true
         content:
@@ -72,3 +75,22 @@ components:
       required:
         - data
         - optimizerConfig
+    result:
+      title: Result of running optimizer on experiment
+      type: object
+      properties:
+        plots:
+          type: object
+          properties:
+            id:
+              type: string
+            plot:
+              description: A base64 encoded png representation of the plot
+              type: string
+        result:
+          type: object
+          properties:
+            next:
+              type: array
+              items:
+                type: number
