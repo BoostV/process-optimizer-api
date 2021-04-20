@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import base64
 import io 
 from numbers import Number
-from .securepickle import pickleToString, unpickleFromString
+from securepickle import pickleToString, unpickleFromString, get_crypto
 
 import numpy
 numpy.random.seed(42)
@@ -112,8 +112,8 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
         plot_objective(result, dimensions=dimensions, usepartialdependence=False)
         addPlot(response["plots"], "objective", debug=True)
     
-    print(str(response))
-    response["pickle"] = pickleToString(result)
+    prettyResult["pickled"] = pickleToString(result, get_crypto())
+    # print(str(response))
     return response
 
 def addPlot(result, id="generic", close=True, debug=False):

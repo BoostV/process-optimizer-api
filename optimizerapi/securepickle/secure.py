@@ -1,14 +1,11 @@
 from cryptography.fernet import Fernet
+import os
 
-def is_initialized():
-    pass
-
-def load_key():
-    with open('mykey.key', 'rb') as mykey:
-        key = mykey.read()
-    return key
-
-def create_key():
-    key = Fernet.generate_key()
-    with open('mykey.key', 'wb') as mykey:
-        mykey.write(key)
+def get_crypto(key=None):
+    if key == None: key = os.getenv("PICKLE_KEY", None)
+    if key == None: 
+        print("No key found, generating new key")
+        key = Fernet.generate_key()
+        os.environ["PICKLE_KEY"] = key.decode("utf-8")
+        print("To reuse key for future server runs, set environment variable PICKLE_KEY=" + os.environ["PICKLE_KEY"])
+    return Fernet(key)
