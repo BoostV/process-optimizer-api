@@ -110,7 +110,7 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
         addPlot(response["plots"], "convergence")
 
         plot_objective(result, dimensions=dimensions, usepartialdependence=False)
-        addPlot(response["plots"], "objective", debug=True)
+        addPlot(response["plots"], "objective")
     
     prettyResult["pickled"] = pickleToString(result, get_crypto())
     # print(str(response))
