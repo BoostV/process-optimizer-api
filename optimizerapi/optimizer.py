@@ -1,5 +1,3 @@
-import codecs
-import pickle
 import json
 from json_tricks import dumps
 from ProcessOptimizer import Optimizer, expected_minimum
@@ -10,6 +8,8 @@ import matplotlib.pyplot as plt
 import base64
 import io 
 from numbers import Number
+from securepickle import pickleToString, unpickleFromString, get_crypto
+
 import numpy
 numpy.random.seed(42)
 """ProcessOptimizer web request handler
@@ -110,9 +110,10 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
         addPlot(response["plots"], "convergence")
 
         plot_objective(result, dimensions=dimensions, usepartialdependence=False)
-        addPlot(response["plots"], "objective", debug=True)
+        addPlot(response["plots"], "objective")
     
-    print(str(response))
+    prettyResult["pickled"] = pickleToString(result, get_crypto())
+    # print(str(response))
     return response
 
 def addPlot(result, id="generic", close=True, debug=False):

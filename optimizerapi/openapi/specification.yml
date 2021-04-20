@@ -97,6 +97,8 @@ components:
         result:
           type: object
           properties:
+            pickled:
+              type: string
             next:
               type: array
               items:

@@ -22,6 +22,8 @@ USER user
 
 COPY optimizerapi/ /code
 
+ENV FLASK_ENV=production
+
 ENV PATH=/opt/venv/bin:${PATH}
 
 CMD [ "python", "./server.py" ]
