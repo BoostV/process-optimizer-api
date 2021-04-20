@@ -32,26 +32,26 @@ def run(body) -> str:
     # Receive: {'data': [{'xi': [0], 'xi': 0}], 'optimizerConfig': {'acqFunc': 'string', 'baseEstimator': 'string', 'initialPoints': 0, 'kappa': 0, 'xi': 0}}
     print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
-    space = [(x["from"], x["to"]) for x in body["optimizerConfig"]["space"]]
-    dimensions = [x["name"] for x in body["optimizerConfig"]["space"]]
+    cfg = body["optimizerConfig"]
+    space = [(x["from"], x["to"]) for x in cfg["space"]]
+    dimensions = [x["name"] for x in cfg["space"]]
     hyperparams = {
-        'base_estimator': body["optimizerConfig"]["baseEstimator"],
-        'acq_func': body["optimizerConfig"]["acqFunc"],
-        'n_initial_points': body["optimizerConfig"]["initialPoints"],
-        'acq_func_kwargs': {'kappa': body["optimizerConfig"]["kappa"], 'xi': body["optimizerConfig"]["xi"]}
+        'base_estimator': cfg["baseEstimator"],
+        'acq_func': cfg["acqFunc"],
+        'n_initial_points': cfg["initialPoints"],
+        'acq_func_kwargs': {'kappa': cfg["kappa"], 'xi': cfg["xi"]}
     }
     optimizer = Optimizer(space, **hyperparams)
-    # TODO ask seems to fail if there are only one entry - should the system auto generate the first entry?
-    if data and len(data) > 1:
+    # TODO ask seems to fail if there are only one entry - should the system auto generate the first entry? - n_initial_points => ingen modele før n
+    len(data) >= cfg["initialPoints"]
+    if data:
         Xi, Yi = map(list, zip(*data))
         result = optimizer.tell(Xi, Yi)
-        response = processResult(result, optimizer, dimensions)
-    else:
-        response = {}
+    response = processResult(result, optimizer, dimensions, cfg, data, space)
 
     return dumps(response)
 
-def processResult(result, optimizer, dimensions):
+def processResult(result, optimizer, dimensions, cfg, data, space):
     """Extracts results from the OptimizerResult.
 
     Parameters
@@ -63,6 +63,12 @@ def processResult(result, optimizer, dimensions):
         and parameters used.
     dimensions : list
         List of dimension names ordered to match space descriptor
+    cfg : dict
+        The configuration part of the user request
+    data : list
+        The data points that have been used in the result
+    space : list
+        The input space definition
 
     Returns
     -------
@@ -82,7 +88,7 @@ def processResult(result, optimizer, dimensions):
     prettyResult = {}
     response["result"] = prettyResult
     
-    prettyResult["next"] = optimizer.ask(n_points=1)[0]
+    prettyResult["next"] = optimizer.ask(n_points=1) # TODO Hent n_points fra brugeren
 
     ##################### Copied and modified from views.py::view_report #####################
 
@@ -95,11 +101,14 @@ def processResult(result, optimizer, dimensions):
 
     ##################### END #####################
 
-    plot_convergence(result)
-    addPlot(response["plots"], "convergence")
+    if len(data) >= cfg["initialPoints"]:
+        # Plotting is only possible if the model has 
+        # processed more that "initialPoints" data points
+        plot_convergence(result)
+        addPlot(response["plots"], "convergence")
 
-    plot_objective(result, dimensions=dimensions, usepartialdependence=False)
-    addPlot(response["plots"], "objective", debug=True)
+        plot_objective(result, dimensions=dimensions, usepartialdependence=False)
+        addPlot(response["plots"], "objective", debug=True)
     return response
 
 def addPlot(result, id="generic", close=True, debug=False):

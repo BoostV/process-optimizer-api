@@ -15,10 +15,6 @@ paths:
         '200':
           description: Result of running the optimizer with the specified parameters
           content:
-            text/plain:
-              schema:
-                type: string
-                example: hello
             application/json:
               schema:
                 $ref: '#/components/schemas/result'
