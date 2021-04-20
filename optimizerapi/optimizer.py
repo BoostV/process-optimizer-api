@@ -30,7 +30,7 @@ def run(body) -> str:
     """
     # TODO generate space, i.e., an array of either options for categories or tuples of (min, max) for value types
     # Receive: {'data': [{'xi': [0], 'xi': 0}], 'optimizerConfig': {'acqFunc': 'string', 'baseEstimator': 'string', 'initialPoints': 0, 'kappa': 0, 'xi': 0}}
-    print("Receive: " + str(body))
+    # print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     space = [(x["from"], x["to"]) for x in body["optimizerConfig"]["space"]]
     hyperparams = {
@@ -40,12 +40,8 @@ def run(body) -> str:
         'acq_func_kwargs': {'kappa': body["optimizerConfig"]["kappa"], 'xi': body["optimizerConfig"]["xi"]}
     }
     optimizer = Optimizer(space, **hyperparams)
-    if data:
-        # Xi = []
-        # Yi = []
-        # for run in data:
-        #     Xi.append(run["Xi"])
-        #     Yi.append(run["Yi"])
+    # TODO ask seems to fail if there are only one entry - should the system auto generate the first entry?
+    if data and len(data) > 1:
         Xi, Yi = map(list, zip(*data))
         result = optimizer.tell(Xi, Yi)
         response = processResult(result, optimizer)
