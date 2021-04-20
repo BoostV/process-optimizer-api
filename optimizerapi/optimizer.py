@@ -1,3 +1,4 @@
+import json
 from json_tricks import dumps
 from ProcessOptimizer import Optimizer, expected_minimum
 from ProcessOptimizer.plots import plot_objective, plot_convergence
@@ -20,20 +21,19 @@ in the specification.yml file found in the folder "openapi" in the root of this 
 #     print("Receive: " + body)
 # def run(data: [([float], Number)] = [], space: [(float, float)] = [(0,1)], xi: float = 0.01, yi: Number = 1, kappa: float = 1.96) -> str:
 
-def run(body) -> str:
+def run(body) -> dict:
     """Executes the ProcessOptimizer
     
     Returns
     -------
-    str
-        a JSON encoded string representation of the result.
+    dict
+        a JSON encodable dictionary representation of the result.
     """
     # TODO generate space, i.e., an array of either options for categories or tuples of (min, max) for value types
-    # Receive: {'data': [{'xi': [0], 'xi': 0}], 'optimizerConfig': {'acqFunc': 'string', 'baseEstimator': 'string', 'initialPoints': 0, 'kappa': 0, 'xi': 0}}
     print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
-    space = [(x["from"], x["to"]) for x in cfg["space"]]
+    space = [(x["from"], x["to"]) if x["type"] == "numeric" else tuple(x["categories"]) for x in cfg["space"]]
     dimensions = [x["name"] for x in cfg["space"]]
     hyperparams = {
         'base_estimator': cfg["baseEstimator"],
@@ -42,14 +42,16 @@ def run(body) -> str:
         'acq_func_kwargs': {'kappa': cfg["kappa"], 'xi': cfg["xi"]}
     }
     optimizer = Optimizer(space, **hyperparams)
-    # TODO ask seems to fail if there are only one entry - should the system auto generate the first entry? - n_initial_points => ingen modele før n
-    len(data) >= cfg["initialPoints"]
+
     if data:
         Xi, Yi = map(list, zip(*data))
         result = optimizer.tell(Xi, Yi)
+    else:
+        result = {}
     response = processResult(result, optimizer, dimensions, cfg, data, space)
 
-    return dumps(response)
+    # It is necesarry to convert response to a json string and then back to dictionary because NumPy types are not serializable by default
+    return json.loads(dumps(response))
 
 def processResult(result, optimizer, dimensions, cfg, data, space):
     """Extracts results from the OptimizerResult.
@@ -85,10 +87,13 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
     response = {
         "plots": []
     }
-    prettyResult = {}
+    prettyResult = {
+        "next": []
+    }
     response["result"] = prettyResult
     
     prettyResult["next"] = optimizer.ask(n_points=1) # TODO Hent n_points fra brugeren
+    print(str(response))
 
     ##################### Copied and modified from views.py::view_report #####################
 

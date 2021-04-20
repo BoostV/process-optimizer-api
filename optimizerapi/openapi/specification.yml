@@ -62,12 +62,23 @@ components:
               items:
                 type: object
                 properties:
+                  type:
+                    type: string
+                    description: Type of the dimension. Can be category or numeric
                   name: 
                     type: string
                   from:
                     type: number
                   to:
                     type: number
+                  categories:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - type
+                  - name
+                  
       required:
         - data
         - optimizerConfig
