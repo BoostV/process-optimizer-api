@@ -1,14 +1,13 @@
 import json
-from json_tricks import dumps
+import json_tricks
 from ProcessOptimizer import Optimizer, expected_minimum
 from ProcessOptimizer.plots import plot_objective, plot_convergence
-from ProcessOptimizer.utils import cook_estimator
-from ProcessOptimizer.learning.gaussian_process.kernels import Matern
 import matplotlib.pyplot as plt
 import base64
 import io 
 from numbers import Number
-from securepickle import pickleToString, unpickleFromString, get_crypto
+# from securepickle import pickleToString, unpickleFromString, get_crypto
+import securepickle
 
 import numpy
 numpy.random.seed(42)
@@ -27,8 +26,7 @@ def run(body) -> dict:
     dict
         a JSON encodable dictionary representation of the result.
     """
-    # TODO generate space, i.e., an array of either options for categories or tuples of (min, max) for value types
-    print("Receive: " + str(body))
+    # print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
     space = [(x["from"], x["to"]) if x["type"] == "numeric" else tuple(x["categories"]) for x in cfg["space"]]
@@ -46,10 +44,12 @@ def run(body) -> dict:
         result = optimizer.tell(Xi, Yi)
     else:
         result = {}
+    
     response = processResult(result, optimizer, dimensions, cfg, data, space)
 
-    # It is necesarry to convert response to a json string and then back to dictionary because NumPy types are not serializable by default
-    return json.loads(dumps(response))
+    # It is necesarry to convert response to a json string and then back to 
+    # dictionary because NumPy types are not serializable by default
+    return json.loads(json_tricks.dumps(response))
 
 def processResult(result, optimizer, dimensions, cfg, data, space):
     """Extracts results from the OptimizerResult.
@@ -82,15 +82,22 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
                 model representation etc.}
         }
     """
+    resultDetails = {
+        "next": [],
+        "pickled": "",
+        "expected_minimum": []
+    }
+    plots = []
     response = {
-        "plots": []
+        "plots": plots,
+        "result": resultDetails
     }
-    prettyResult = {
-        "next": []
-    }
-    response["result"] = prettyResult
     
-    prettyResult["next"] = optimizer.ask(n_points=1) # TODO Hent n_points fra brugeren
+    # In the following section details that should be reported to 
+    # clients should go into the "resultDetails" dictionary and plots
+    # go into the "plots" list (this is handled by calling the "addPlot" function)
+
+    resultDetails["next"] = optimizer.ask(n_points=1) # TODO Hent n_points fra brugeren
 
     ##################### Copied and modified from views.py::view_report #####################
 
@@ -99,7 +106,7 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
         for entry,value in zip(header_list[:-1], result.expected_minimum[0]):
             temp_exp_min.append([entry, value])
         exp_min_out = {'value':temp_exp_min, 'result':result.expected_minimum[1]}
-        prettyResult['expected_minimum'] = exp_min_out
+        resultDetails['expected_minimum'] = exp_min_out
 
     ##################### END #####################
 
@@ -107,12 +114,12 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
         # Plotting is only possible if the model has 
         # processed more that "initialPoints" data points
         plot_convergence(result)
-        addPlot(response["plots"], "convergence")
+        addPlot(plots, "convergence")
 
         plot_objective(result, dimensions=dimensions, usepartialdependence=False)
-        addPlot(response["plots"], "objective")
+        addPlot(plots, "objective")
     
-    prettyResult["pickled"] = pickleToString(result, get_crypto())
+    resultDetails["pickled"] = securepickle.pickleToString(result, securepickle.get_crypto())
     # print(str(response))
     return response
 
