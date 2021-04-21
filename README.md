@@ -22,6 +22,9 @@ Unit tetsts are located in the "tests" folder and can be run witht the following
 
     python -m pytest
 
+or use pytest-watch for continuously running tests
+
+    ptw
 # Building docker container
 
     docker build -t process-optimizer-api .
