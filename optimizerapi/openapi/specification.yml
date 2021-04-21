@@ -38,6 +38,10 @@ components:
             properties:
               xi:
                 type: array
+                items:
+                  anyOf:
+                    - type: string
+                    - type: number
               yi:
                 type: number
         optimizerConfig:
@@ -52,8 +56,6 @@ components:
             kappa:
               type: number
             xi:
-              type: number
-            yi:
               type: number
             space:
               type: array
