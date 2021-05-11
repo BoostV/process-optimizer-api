@@ -26,7 +26,7 @@ def run(body) -> dict:
     dict
         a JSON encodable dictionary representation of the result.
     """
-    # print("Receive: " + str(body))
+    print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
     space = [(x["from"], x["to"]) if x["type"] == "numeric" else tuple(x["categories"]) for x in cfg["space"]]
