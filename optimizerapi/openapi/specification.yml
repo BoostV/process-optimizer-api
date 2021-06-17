@@ -105,3 +105,5 @@ components:
               type: array
               items:
                 type: number
+            extras:
+              type: object

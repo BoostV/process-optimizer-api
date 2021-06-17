@@ -85,7 +85,8 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
     resultDetails = {
         "next": [],
         "pickled": "",
-        "expected_minimum": []
+        "expected_minimum": [],
+        "extras": {}
     }
     plots = []
     response = {
@@ -120,6 +121,7 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
         addPlot(plots, "objective")
     
     resultDetails["pickled"] = securepickle.pickleToString(result, securepickle.get_crypto())
+
     # print(str(response))
     return response
 
