@@ -11,6 +11,9 @@ import securepickle
 
 import numpy
 numpy.random.seed(42)
+
+plt.switch_backend('Agg')
+
 """ProcessOptimizer web request handler
 
 This file contains the main HTTP request handlers for exposing the ProcessOptimizer API.
