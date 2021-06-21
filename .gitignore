@@ -2,3 +2,6 @@
 **.pyc
 .vscode
 /tmp
+#for eclipse users
+/.project
+/.pydevproject

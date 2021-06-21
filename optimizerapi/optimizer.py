@@ -128,6 +128,11 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
 
         plot_objective(result, dimensions=dimensions, usepartialdependence=False)
         addPlot(plots, "objective")
+        
+        ax, space, ylabel, dimensions, plots_data = plot_objective(result, dimensions=dimensions, usepartialdependence=False, extplt=True)
+        resultDetails['extras']['plots_data'] = plots_data
+        resultDetails['extras']['dimensions'] = dimensions
+        resultDetails['extras']['ylabel'] = ylabel
     
     resultDetails["pickled"] = securepickle.pickleToString(result, securepickle.get_crypto())
 
