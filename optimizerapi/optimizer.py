@@ -106,8 +106,11 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     # In the following section details that should be reported to 
     # clients should go into the "resultDetails" dictionary and plots
     # go into the "plots" list (this is handled by calling the "addPlot" function)
-
-    resultDetails["next"] = optimizer.ask(n_points=1) # TODO Hent n_points fra brugeren
+    experimentSuggestionCount = 1
+    if ("experimentSuggestionCount" in extras):
+        experimentSuggestionCount = extras["experimentSuggestionCount"]
+    print("Exp:" + str(experimentSuggestionCount))
+    resultDetails["next"] = optimizer.ask(n_points=experimentSuggestionCount) # TODO Hent n_points fra brugeren
 
     ##################### Copied and modified from views.py::view_report #####################
 
