@@ -31,6 +31,9 @@ components:
       title: An experiment definition
       type: object
       properties:
+        extras:
+          description: A plain JSON object that can contain arbitrary values
+          type: object
         data:
           type: array
           items:

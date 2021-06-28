@@ -11,6 +11,9 @@ import securepickle
 
 import numpy
 numpy.random.seed(42)
+
+plt.switch_backend('Agg')
+
 """ProcessOptimizer web request handler
 
 This file contains the main HTTP request handlers for exposing the ProcessOptimizer API.
@@ -29,7 +32,10 @@ def run(body) -> dict:
     print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
-    
+    extras = {}
+    if ("extras" in body):
+        extras = body["extras"]
+    print("Received extras " + str(extras))
     space = [(x["from"], x["to"]) if x["type"] == "numeric" else tuple(x["categories"]) for x in cfg["space"]]
     dimensions = [x["name"] for x in cfg["space"]]
     hyperparams = {
@@ -46,13 +52,13 @@ def run(body) -> dict:
     else:
         result = {}
     
-    response = processResult(result, optimizer, dimensions, cfg, data, space)
+    response = processResult(result, optimizer, dimensions, cfg, extras, data, space)
 
     # It is necesarry to convert response to a json string and then back to 
     # dictionary because NumPy types are not serializable by default
     return json.loads(json_tricks.dumps(response))
 
-def processResult(result, optimizer, dimensions, cfg, data, space):
+def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     """Extracts results from the OptimizerResult.
 
     Parameters
@@ -66,6 +72,8 @@ def processResult(result, optimizer, dimensions, cfg, data, space):
         List of dimension names ordered to match space descriptor
     cfg : dict
         The configuration part of the user request
+    extras: dict
+        A dictionary containing "extra" non-specified values received from the client
     data : list
         The data points that have been used in the result
     space : list
