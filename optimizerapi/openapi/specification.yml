@@ -67,7 +67,7 @@ components:
                 properties:
                   type:
                     type: string
-                    description: Type of the dimension. Can be category or numeric
+                    description: Type of the dimension. Can be category, discrete or continuous
                   name: 
                     type: string
                   from:
