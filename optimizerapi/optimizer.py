@@ -36,7 +36,7 @@ def run(body) -> dict:
     if ("extras" in body):
         extras = body["extras"]
     print("Received extras " + str(extras))
-    space = [(x["from"], x["to"]) if x["type"] == "numeric" else tuple(x["categories"]) for x in cfg["space"]]
+    space = [(convertNumberType(x["from"], x["type"]), convertNumberType(x["to"], x["type"])) if (x["type"] == "discrete" or x["type"] == "continuous") else tuple(x["categories"]) for x in cfg["space"]]
     dimensions = [x["name"] for x in cfg["space"]]
     hyperparams = {
         'base_estimator': cfg["baseEstimator"],
@@ -57,6 +57,12 @@ def run(body) -> dict:
     # It is necesarry to convert response to a json string and then back to 
     # dictionary because NumPy types are not serializable by default
     return json.loads(json_tricks.dumps(response))
+
+def convertNumberType(value, numType):
+    if numType == "discrete":
+        return int(value)
+    else:
+        return float(value)
 
 def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     """Extracts results from the OptimizerResult.
