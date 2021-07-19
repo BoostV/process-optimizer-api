@@ -165,7 +165,7 @@ def addPlot(result, id="generic", close=True, debug=False):
         relative to current working directory. (default is False)
     """
     pic_IObytes = io.BytesIO()
-    plt.savefig(pic_IObytes,  format='png')
+    plt.savefig(pic_IObytes,  format='png', bbox_inches = 'tight')
     pic_IObytes.seek(0)
     pic_hash = base64.b64encode(pic_IObytes.read())
     result.append({
