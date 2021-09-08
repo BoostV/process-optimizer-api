@@ -27,7 +27,7 @@ or use pytest-watch for continuously running tests
     ptw
 # Building docker container
 
-    docker build -t process-optimizer-api .
+    git describe --always > version.txt && docker build -t process-optimizer-api .
 # Obtain encryption key
 
 Run server once and extract a fresh encryption key from the logs.
@@ -52,7 +52,7 @@ or use docker
 When adding a new dependency, you should manually add it to `requirements.txt` and then run the following commands:
 
     pip install -r requirements.tx
-    pip freeze > requirements-freeze.txt
+    pip freeze | grep --invert-match pkg_resources > requirements-freeze.txt
 
 Now you should check if the freeze operation resulted in unwanted upates by running:
 

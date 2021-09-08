@@ -212,7 +212,7 @@ def addVersionInfo(extras):
     
     if os.path.isfile("version.txt"):
         with open("version.txt", "r") as versionFile:
-            extras["apiVersion"] = versionFile.readline()
+            extras["apiVersion"] = versionFile.readline().rstrip()
     else:
         import subprocess
         try:
