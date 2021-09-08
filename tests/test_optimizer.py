@@ -1,6 +1,9 @@
 from .context import optimizer
 
 #  {'data': [{'xi': [651, 56, 722, 'Ræv'], 'yi': 1}, {'xi': [651, 42, 722, 'Ræv'], 'yi': 0.2}], 'optimizerConfig': {'baseEstimator': 'GP', 'acqFunc': 'gp_hedge', 'initialPoints': 5, 'kappa': 1.96, 'xi': 0.012, 'space': [{'type': 'numeric', 'name': 'Sukker', 'from': 0, 'to': 1000}, {'type': 'numeric', 'name': 'Peber', 'from': 0, 'to': 1000}, {'type': 'numeric', 'name': 'Hvedemel', 'from': 0, 'to': 1000}, {'type': 'category', 'name': 'Kunde', 'categories': ['Mus', 'Ræv']}]}}
+#   'data': [{'xi': [0, 5, 'Rød'], 'yi': 10}, {'xi': [5, 8.33, 'Hvid'], 'yi': 3}, {'xi': [10, 1.66, 'Rød'], 'yi': 5}], 
+#   'optimizerConfig': {'baseEstimator': 'GP', 'acqFunc': 'gp_hedge', 'initialPoints': 3, 'kappa': 1.96, 'xi': 0.01, 
+#   'space': [{'type': 'discrete', 'name': 'Alkohol', 'from': 0, 'to': 10}, {'type': 'continuous', 'name': 'Vand', 'from': 0, 'to': 10}, {'type': 'category', 'name': 'Farve', 'categories': ['Rød', 'Hvid']}]}}                                                                                                                                                  Received extras {'experimentSuggestionCount': 2}         
 
 sampleData = [
         {'xi': [651, 56, 722, 'Ræv'], 'yi': 1}, 
@@ -15,9 +18,9 @@ sampleConfig = {
         'kappa': 1.96, 
         'xi': 0.012, 
         'space': [
-            {'type': 'numeric', 'name': 'Sukker', 'from': 0, 'to': 1000}, 
-            {'type': 'numeric', 'name': 'Peber', 'from': 0, 'to': 1000}, 
-            {'type': 'numeric', 'name': 'Hvedemel', 'from': 0, 'to': 1000}, 
+            {'type': 'discrete', 'name': 'Sukker', 'from': 0, 'to': 1000}, 
+            {'type': 'continuous', 'name': 'Peber', 'from': 0, 'to': 1000}, 
+            {'type': 'continuous', 'name': 'Hvedemel', 'from': 0, 'to': 1000}, 
             {'type': 'category', 'name': 'Kunde', 'categories': ['Mus', 'Ræv']}
             ]
     }

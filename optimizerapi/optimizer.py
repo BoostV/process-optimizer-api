@@ -32,13 +32,13 @@ def run(body) -> dict:
     dict
         a JSON encodable dictionary representation of the result.
     """
-    print("Receive: " + str(body))
+    # print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
     extras = {}
     if ("extras" in body):
         extras = body["extras"]
-    print("Received extras " + str(extras))
+    # print("Received extras " + str(extras))
     space = [(convertNumberType(x["from"], x["type"]), convertNumberType(x["to"], x["type"])) if (x["type"] == "discrete" or x["type"] == "continuous") else tuple(x["categories"]) for x in cfg["space"]]
     dimensions = [x["name"] for x in cfg["space"]]
     hyperparams = {
@@ -49,6 +49,8 @@ def run(body) -> dict:
     }
     optimizer = Optimizer(space, **hyperparams)
 
+    Xi = []
+    Yi = []
     if data:
         Xi, Yi = map(list, zip(*data))
         result = optimizer.tell(Xi, Yi)
@@ -127,7 +129,8 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     experimentSuggestionCount = 1
     if ("experimentSuggestionCount" in extras):
         experimentSuggestionCount = extras["experimentSuggestionCount"]
-    print("Exp:" + str(experimentSuggestionCount))
+    
+    # print("Exp:" + str(experimentSuggestionCount))
     resultDetails["next"] = optimizer.ask(n_points=experimentSuggestionCount) # TODO Hent n_points fra brugeren
 
     ##################### Copied and modified from views.py::view_report #####################
@@ -154,7 +157,7 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
 
     addVersionInfo(resultDetails["extras"])
 
-    print(str(response))
+    # print(str(response))
     return response
 
 def addPlot(result, id="generic", close=True, debug=False):
