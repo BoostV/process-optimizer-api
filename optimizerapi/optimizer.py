@@ -133,17 +133,6 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     # print("Exp:" + str(experimentSuggestionCount))
     resultDetails["next"] = optimizer.ask(n_points=experimentSuggestionCount) # TODO Hent n_points fra brugeren
 
-    ##################### Copied and modified from views.py::view_report #####################
-
-    if "expected_minimum" in result:
-        temp_exp_min =[]
-        for entry,value in zip(header_list[:-1], result.expected_minimum[0]):
-            temp_exp_min.append([entry, value])
-        exp_min_out = {'value':temp_exp_min, 'result':result.expected_minimum[1]}
-        resultDetails['expected_minimum'] = exp_min_out
-
-    ##################### END #####################
-
     if len(data) >= cfg["initialPoints"]:
         # Plotting is only possible if the model has 
         # processed more that "initialPoints" data points
