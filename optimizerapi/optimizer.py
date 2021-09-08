@@ -140,6 +140,12 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     
     resultDetails["pickled"] = securepickle.pickleToString(result, securepickle.get_crypto())
 
+    ## Add requirements details to response
+    requirementsFile = open("requirements-freeze.txt", "r")
+    requirements = requirementsFile.readlines()
+    requirementsFile.close()
+    resultDetails["extras"]["libraries"] = [x.rstrip() for x in requirements]
+
     # print(str(response))
     return response
 
