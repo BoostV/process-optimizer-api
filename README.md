@@ -12,7 +12,7 @@ Alternatively the project can be build and run with the following commands:
     source env/bin/activate
     pip install --upgrade pip
     
-    pip install -r requirements.txt
+    pip install -r requirements-freeze.txt
     python optimizerapi/server.py
 
 Now open [http://localhost:9090/v1.0/ui/](http://localhost:9090/v1.0/ui/) in a browser to explore the API through Swagger UI
@@ -27,7 +27,7 @@ or use pytest-watch for continuously running tests
     ptw
 # Building docker container
 
-    docker build -t process-optimizer-api .
+    git describe --always > version.txt && docker build -t process-optimizer-api .
 # Obtain encryption key
 
 Run server once and extract a fresh encryption key from the logs.
@@ -46,3 +46,20 @@ Running using python
 or use docker
 
     docker run -d --name process-optimizer-api --env PICKLE_KEY=<key from previous step> -p 9090:9090 process-optimizer-api:latest
+
+# Adding or updating dependencies
+
+When adding a new dependency, you should manually add it to `requirements.txt` and then run the following commands:
+
+    pip install -r requirements.tx
+    pip freeze | grep --invert-match pkg_resources > requirements-freeze.txt
+
+Now you should check if the freeze operation resulted in unwanted upates by running:
+
+    git diff requirements-freeze.txt
+
+After manually fixing any dependencies, you should run:
+
+    pip install -r requirements-freeze.txt
+
+Remember to commit both the changed `requirements.txt` and `requirements-freeze.txt` files.

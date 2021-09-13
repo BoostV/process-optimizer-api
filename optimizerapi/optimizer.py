@@ -1,3 +1,6 @@
+import os
+import platform
+from time import strftime
 import json
 import json_tricks
 from ProcessOptimizer import Optimizer, expected_minimum
@@ -29,13 +32,13 @@ def run(body) -> dict:
     dict
         a JSON encodable dictionary representation of the result.
     """
-    print("Receive: " + str(body))
+    # print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
     extras = {}
     if ("extras" in body):
         extras = body["extras"]
-    print("Received extras " + str(extras))
+    # print("Received extras " + str(extras))
     space = [(convertNumberType(x["from"], x["type"]), convertNumberType(x["to"], x["type"])) if (x["type"] == "discrete" or x["type"] == "continuous") else tuple(x["categories"]) for x in cfg["space"]]
     dimensions = [x["name"] for x in cfg["space"]]
     hyperparams = {
@@ -46,6 +49,8 @@ def run(body) -> dict:
     }
     optimizer = Optimizer(space, **hyperparams)
 
+    Xi = []
+    Yi = []
     if data:
         Xi, Yi = map(list, zip(*data))
         result = optimizer.tell(Xi, Yi)
@@ -53,6 +58,15 @@ def run(body) -> dict:
         result = {}
     
     response = processResult(result, optimizer, dimensions, cfg, extras, data, space)
+    
+    response["result"]["extras"]["parameters"] = {
+        "dimensions": dimensions,
+        "space": space,
+        "hyperparams": hyperparams,
+        "Xi": Xi,
+        "Yi": Yi,
+        "extras": extras
+    }
 
     # It is necesarry to convert response to a json string and then back to 
     # dictionary because NumPy types are not serializable by default
@@ -115,19 +129,9 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     experimentSuggestionCount = 1
     if ("experimentSuggestionCount" in extras):
         experimentSuggestionCount = extras["experimentSuggestionCount"]
-    print("Exp:" + str(experimentSuggestionCount))
+    
+    # print("Exp:" + str(experimentSuggestionCount))
     resultDetails["next"] = optimizer.ask(n_points=experimentSuggestionCount) # TODO Hent n_points fra brugeren
-
-    ##################### Copied and modified from views.py::view_report #####################
-
-    if "expected_minimum" in result:
-        temp_exp_min =[]
-        for entry,value in zip(header_list[:-1], result.expected_minimum[0]):
-            temp_exp_min.append([entry, value])
-        exp_min_out = {'value':temp_exp_min, 'result':result.expected_minimum[1]}
-        resultDetails['expected_minimum'] = exp_min_out
-
-    ##################### END #####################
 
     if len(data) >= cfg["initialPoints"]:
         # Plotting is only possible if the model has 
@@ -139,6 +143,8 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
         addPlot(plots, "objective")
     
     resultDetails["pickled"] = securepickle.pickleToString(result, securepickle.get_crypto())
+
+    addVersionInfo(resultDetails["extras"])
 
     # print(str(response))
     return response
@@ -180,3 +186,30 @@ def addPlot(result, id="generic", close=True, debug=False):
     # print("IMAGE: " + str(pic_hash, "utf-8"))
     if close:
         plt.clf()
+
+def addVersionInfo(extras):
+    """Add various version information to the dictionary supplied.
+    
+    Parameters
+    ----------
+    extras : dict
+            The dictionary to hold the version information
+    """
+    
+    with open("requirements-freeze.txt", "r") as requirementsFile:
+        requirements = requirementsFile.readlines()
+        extras["libraries"] = [x.rstrip() for x in requirements]
+
+    extras["pythonVersion"] = platform.python_version()
+    
+    if os.path.isfile("version.txt"):
+        with open("version.txt", "r") as versionFile:
+            extras["apiVersion"] = versionFile.readline().rstrip()
+    else:
+        import subprocess
+        try:
+            extras["apiVersion"] = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
+        except:
+            extras["apiVersion"] = 'Unknown development version'
+    
+    extras["timeOfExecution"] = strftime("%Y-%m-%d %H:%M:%S")
