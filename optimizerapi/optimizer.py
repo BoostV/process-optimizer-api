@@ -129,19 +129,20 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     experimentSuggestionCount = 1
     if ("experimentSuggestionCount" in extras):
         experimentSuggestionCount = extras["experimentSuggestionCount"]
-    
-    # print("Exp:" + str(experimentSuggestionCount))
+
     resultDetails["next"] = optimizer.ask(n_points=experimentSuggestionCount) # TODO Hent n_points fra brugeren
 
     if len(data) >= cfg["initialPoints"]:
-        # Plotting is only possible if the model has 
+        # Some calculations are only possible if the model has 
         # processed more that "initialPoints" data points
+        resultDetails["expected_minimum"] = expected_minimum(result)
+
         plot_convergence(result)
         addPlot(plots, "convergence")
 
         plot_objective(result, dimensions=dimensions, usepartialdependence=False)
         addPlot(plots, "objective")
-    
+   
     resultDetails["pickled"] = securepickle.pickleToString(result, securepickle.get_crypto())
 
     addVersionInfo(resultDetails["extras"])
