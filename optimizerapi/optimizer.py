@@ -5,6 +5,7 @@ import json
 import json_tricks
 from ProcessOptimizer import Optimizer, expected_minimum
 from ProcessOptimizer.plots import plot_objective, plot_convergence
+from ProcessOptimizer.space import Real
 import matplotlib.pyplot as plt
 import base64
 import io 
@@ -130,7 +131,8 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     if ("experimentSuggestionCount" in extras):
         experimentSuggestionCount = extras["experimentSuggestionCount"]
 
-    resultDetails["next"] = optimizer.ask(n_points=experimentSuggestionCount) # TODO Hent n_points fra brugeren
+    next_exp = optimizer.ask(n_points=experimentSuggestionCount)
+    resultDetails["next"] = round_to_length_scales(next_exp, optimizer.space)
 
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has 
@@ -187,6 +189,45 @@ def addPlot(result, id="generic", close=True, debug=False):
     # print("IMAGE: " + str(pic_hash, "utf-8"))
     if close:
         plt.clf()
+        
+def round_to_length_scales(x, space):
+    """ Rounds a suggested experiment to to the length scales of each dimension
+    
+    For each dimension the length of the dimension is calculated and the
+    length scale is defined as 1/1000th of the length.
+    The precision is the n in 10^n which is the closest to the 
+    length_scale (rounded) up .
+    The suggested experiment value is then rounded to n decimals
+    
+    This function should be called after asking for a new experiment and before
+    adding it to resultDetails.
+    Note that this function will only round Real dimensions
+    
+    Parameters
+    ----------
+    x : list or list of lists
+        The suggested experiment(s)
+    space : ProcessOptimizer.space.space.Space
+        The space of the optimizer. Contains information about each dimension
+        of the space
+    """
+    for dim, i in zip(space.dimensions, range(len(space.dimensions))):
+        # Checking if dimension is real. Else do nothing
+        if type(dim) == Real:
+            length = dim.high- dim.low
+            #Length scale of the dimension is 1/1000 of the dimension length
+            length_scale = length/1000
+            #The precision is found by taking the
+            # negative log10 to the length scale ceiled
+            precision = int(numpy.ceil(- numpy.log10(length_scale)))
+            
+            # If multiple experiments round dimension values for all experiments
+            # else round dimension value
+            if any(isinstance(el, list) for el in x):
+                for exp in x: exp[i]= round(exp[i], precision)
+            else:
+                x[i] = round(x[i], precision)
+    return x
 
 def addVersionInfo(extras):
     """Add various version information to the dictionary supplied.
