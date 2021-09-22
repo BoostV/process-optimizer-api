@@ -137,7 +137,8 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has 
         # processed more than "initialPoints" data points
-        resultDetails["expected_minimum"] = expected_minimum(result)
+        min = expected_minimum(result)
+        resultDetails["expected_minimum"] = [round_to_length_scales(min[0], optimizer.space), round(min[1], 2)]
 
         plot_convergence(result)
         addPlot(plots, "convergence")
