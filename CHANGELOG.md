@@ -1,5 +1,19 @@
 # Changelog
 
+## [v1.4.0](https://github.com/BoostV/process-optimizer-api/tree/HEAD)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v1.3.0...v1.4.0)
+
+**Implemented enhancements:**
+
+- Add expected minimum to response [\#10](https://github.com/BoostV/process-optimizer-api/issues/10)
+
+**Merged pull requests:**
+
+- Expose expected minimum in result response [\#26](https://github.com/BoostV/process-optimizer-api/pull/26) ([langdal](https://github.com/langdal))
+- Automatically generate changelog [\#25](https://github.com/BoostV/process-optimizer-api/pull/25) ([langdal](https://github.com/langdal))
+- Rounding suggested experiment\(s\) to length scale of dimensions [\#21](https://github.com/BoostV/process-optimizer-api/pull/21) ([AkselObdrup](https://github.com/AkselObdrup))
+
 ## [v1.3.0](https://github.com/BoostV/process-optimizer-api/tree/v1.3.0) (2021-09-20)
 
 [Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v1.2.0...v1.3.0)
