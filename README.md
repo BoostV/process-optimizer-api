@@ -63,3 +63,12 @@ After manually fixing any dependencies, you should run:
     pip install -r requirements-freeze.txt
 
 Remember to commit both the changed `requirements.txt` and `requirements-freeze.txt` files.
+
+# Updating the change log
+
+In order to keep the overhead of maintaining the change log as low as possible this project use a tool to automatically generate
+as much of the change log as possible.
+
+Before creating a new release please run the following command inside a clean working directory
+
+    docker run -it --rm -v "$(pwd)":/usr/local/src/your-app githubchangeloggenerator/github-changelog-generator --user BoostV --project process-optimizer-api
