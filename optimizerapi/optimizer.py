@@ -135,14 +135,17 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     resultDetails["next"] = round_to_length_scales(next_exp, optimizer.space)
 
     if len(data) >= cfg["initialPoints"]:
-        # Plotting is only possible if the model has 
-        # processed more that "initialPoints" data points
+        # Some calculations are only possible if the model has 
+        # processed more than "initialPoints" data points
+        min = expected_minimum(result)
+        resultDetails["expected_minimum"] = [round_to_length_scales(min[0], optimizer.space), round(min[1], 2)]
+
         plot_convergence(result)
         addPlot(plots, "convergence")
 
         plot_objective(result, dimensions=dimensions, usepartialdependence=False)
         addPlot(plots, "objective")
-    
+   
     resultDetails["pickled"] = securepickle.pickleToString(result, securepickle.get_crypto())
 
     addVersionInfo(resultDetails["extras"])

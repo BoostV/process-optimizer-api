@@ -102,6 +102,12 @@ components:
         result:
           type: object
           properties:
+            expected_minimum:
+              type: array
+              items:
+                type: array
+                items:
+                  type: number
             pickled:
               type: string
             next:
