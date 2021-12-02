@@ -16,6 +16,12 @@ import securepickle
 import numpy
 numpy.random.seed(42)
 
+from redis import Redis
+from rq import Queue
+import time
+
+queue = Queue(connection=Redis())
+
 plt.switch_backend('Agg')
 
 """ProcessOptimizer web request handler
@@ -33,6 +39,11 @@ def run(body) -> dict:
     dict
         a JSON encodable dictionary representation of the result.
     """
+    job = queue.enqueue(doRunWork, body)
+    while (job.return_value == None): time.sleep(0.2)
+    return job.return_value
+
+def doRunWork(body) -> dict:
     # print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
