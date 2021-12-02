@@ -39,9 +39,12 @@ def run(body) -> dict:
     dict
         a JSON encodable dictionary representation of the result.
     """
-    job = queue.enqueue(doRunWork, body)
-    while (job.return_value == None): time.sleep(0.2)
-    return job.return_value
+    if os.environ["USE_WORKER"]:
+        job = queue.enqueue(doRunWork, body)
+        while (job.return_value == None): time.sleep(0.2)
+        return job.return_value
+    else:
+        return doRunWork(body)
 
 def doRunWork(body) -> dict:
     # print("Receive: " + str(body))
