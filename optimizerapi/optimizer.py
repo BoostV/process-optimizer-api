@@ -15,7 +15,7 @@ import json_tricks
 from rq import Queue
 from redis import Redis
 from ProcessOptimizer import Optimizer, expected_minimum
-from ProcessOptimizer.plots import plot_objective, plot_convergence
+from ProcessOptimizer.plots import plot_objective, plot_convergence, plot_Pareto
 from ProcessOptimizer.space import Real
 import matplotlib.pyplot as plt
 import numpy
@@ -69,15 +69,26 @@ def doRunWork(body) -> dict:
         'n_initial_points': cfg["initialPoints"],
         'acq_func_kwargs': {'kappa': cfg["kappa"], 'xi': cfg["xi"]}
     }
-    optimizer = Optimizer(space, **hyperparams)
 
     Xi = []
     Yi = []
     if data:
         Xi, Yi = map(list, zip(*data))
+
+    n_objectives = 1
+    if (len(Yi) > 0):
+        n_objectives = len(Yi[0])
+
+    optimizer = Optimizer(space, **hyperparams, n_objectives=n_objectives)
+
+    if data:
+        if n_objectives == 1:
+            Yi = [elm[0] for elm in Yi]
         result = optimizer.tell(Xi, Yi)
+        if n_objectives == 1:
+            result = [result]
     else:
-        result = {}
+        result = []
 
     response = processResult(
         result, optimizer, dimensions, cfg, extras, data, space)
@@ -161,19 +172,24 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
-        min = expected_minimum(result)
-        resultDetails["expected_minimum"] = [
-            round_to_length_scales(min[0], optimizer.space), round(min[1], 2)]
+        if optimizer.n_objectives == 1:
+            min = expected_minimum(result[0])
+            resultDetails["expected_minimum"] = [
+                round_to_length_scales(min[0], optimizer.space), round(min[1], 2)]
 
-        plot_convergence(result)
-        addPlot(plots, "convergence")
+            plot_convergence(result[0])
+            addPlot(plots, "convergence")
 
-        plot_objective(result, dimensions=dimensions,
-                       usepartialdependence=False)
-        addPlot(plots, "objective")
+            plot_objective(result[0], dimensions=dimensions,
+                           usepartialdependence=False)
+            addPlot(plots, "objective")
+        else:
+            [expected_minimum(res) for res in result]
+            plot_Pareto(optimizer)
+            addPlot(plots, "pareto")
 
-    resultDetails["pickled"] = pickleToString(
-        result, get_crypto())
+    resultDetails["pickled"] = securepickle.pickleToString(
+        result, securepickle.get_crypto())
 
     addVersionInfo(resultDetails["extras"])
 

@@ -46,7 +46,9 @@ components:
                     - type: string
                     - type: number
               yi:
-                type: number
+                type: array
+                items:
+                  type: number
         optimizerConfig:
           type: object
           properties:

@@ -9,8 +9,14 @@ from optimizerapi import optimizer
 #   'space': [{'type': 'discrete', 'name': 'Alkohol', 'from': 0, 'to': 10}, {'type': 'continuous', 'name': 'Vand', 'from': 0, 'to': 10}, {'type': 'category', 'name': 'Farve', 'categories': ['Rød', 'Hvid']}]}}                                                                                                                                                  Received extras {'experimentSuggestionCount': 2}
 
 sampleData = [
-    {'xi': [651, 56, 722, 'Ræv'], 'yi': 1},
-    {'xi': [651, 42, 722, 'Ræv'], 'yi': 0.2}
+    {'xi': [651, 56, 722, 'Ræv'], 'yi': [1]},
+    {'xi': [651, 42, 722, 'Ræv'], 'yi': [0.2]}
+]
+
+sampleMultiObjectiveData = [
+    {'xi': [651, 56, 722, 'Ræv'], 'yi': [1, 2]},
+    {'xi': [651, 42, 722, 'Ræv'], 'yi': [0.2, 0.5]},
+    {'xi': [652, 41, 722, 'Ræv'], 'yi': [0.1, 0.5]},
 ]
 
 sampleConfig = {
@@ -58,3 +64,12 @@ def test_generates_plots_when_run_with_more_than_initialPoints_samples():
     })
     validateResult(result)
     assert len(result["plots"]) == 2
+
+
+def test_can_accept_multi_objective_data():
+    result = optimizer.run(body={
+        "data": sampleMultiObjectiveData,
+        "optimizerConfig": sampleConfig
+    })
+    validateResult(result)
+    assert len(result["plots"]) == 1
