@@ -149,8 +149,8 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     """
     resultDetails = {
         "next": [],
+        "models": [processModel(model, optimizer) for model in result],
         "pickled": "",
-        "expected_minimum": [],
         "extras": {}
     }
     plots = []
@@ -172,29 +172,53 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
+        for idx, model in enumerate(result):
+            plot_convergence(model)
+            addPlot(plots, "convergence_%d" % idx)
+
+            plot_objective(model, dimensions=dimensions,
+                           usepartialdependence=False)
+            addPlot(plots, "objective_%d" % idx)
+
         if optimizer.n_objectives == 1:
             min = expected_minimum(result[0])
+
             resultDetails["expected_minimum"] = [
                 round_to_length_scales(min[0], optimizer.space), round(min[1], 2)]
-
-            plot_convergence(result[0])
-            addPlot(plots, "convergence")
-
-            plot_objective(result[0], dimensions=dimensions,
-                           usepartialdependence=False)
-            addPlot(plots, "objective")
         else:
-            [expected_minimum(res) for res in result]
             plot_Pareto(optimizer)
             addPlot(plots, "pareto")
 
-    resultDetails["pickled"] = securepickle.pickleToString(
-        result, securepickle.get_crypto())
+    resultDetails["pickled"] = pickleToString(
+        result, get_crypto())
 
     addVersionInfo(resultDetails["extras"])
 
     # print(str(response))
     return response
+
+
+def processModel(model, optimizer):
+    """Extract model specific results.
+
+    Parameters
+    ----------
+    model : object
+        The model as returned by the optimizer
+
+    Returns
+    -------
+    dict
+        a dictionary containing the model specific results.
+    """
+    resultDetails = {
+        "expected_minimum": [],
+        "extras": {}
+    }
+    min = expected_minimum(model)
+    resultDetails["expected_minimum"] = [
+        round_to_length_scales(min[0], optimizer.space), round(min[1], 2)]
+    return resultDetails
 
 
 def addPlot(result, id="generic", close=True, debug=False):

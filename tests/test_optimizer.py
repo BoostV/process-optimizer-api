@@ -42,10 +42,14 @@ samplePayload = {
 def validateResult(result):
     assert "plots" in result
     assert "result" in result
+    assert "models" in result["result"]
     assert "next" in result["result"]
     assert len(result["result"]["next"]) == len(sampleConfig["space"])
     assert "pickled" in result["result"]
     assert len(result["result"]["pickled"]) > 1
+    if len(result["result"]["models"]) > 0:
+        for model in result["result"]["models"]:
+            assert "expected_minimum" in model
 
 
 def test_can_be_run_without_data():
@@ -63,6 +67,7 @@ def test_generates_plots_when_run_with_more_than_initialPoints_samples():
         "optimizerConfig": sampleConfig
     })
     validateResult(result)
+    assert len(result["result"]["models"]) > 0
     assert len(result["plots"]) == 2
 
 
@@ -72,4 +77,5 @@ def test_can_accept_multi_objective_data():
         "optimizerConfig": sampleConfig
     })
     validateResult(result)
-    assert len(result["plots"]) == 1
+    assert len(result["result"]["models"]) > 1
+    assert len(result["plots"]) == 5

@@ -104,17 +104,24 @@ components:
         result:
           type: object
           properties:
-            expected_minimum:
-              type: array
-              items:
-                type: array
-                items:
-                  type: number
             pickled:
               type: string
             next:
               type: array
               items:
                 type: number
+            models:
+              type: array
+              items:
+                type: object
+                properties:
+                  expected_minimum:
+                    type: array
+                    items:
+                      type: array
+                      items:
+                        type: number
+                  extras:
+                    type: object
             extras:
               type: object
