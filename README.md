@@ -29,7 +29,7 @@ or use pytest-watch for continuously running tests
 
 # Building docker container
 
-    GITHUB_REF_NAME=$(git describe --always) docker build -t process-optimizer-api .
+    docker build -t process-optimizer-api --build-arg VERSION=$(git describe --always) .
 
 # Obtain encryption key
 
