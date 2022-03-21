@@ -1,7 +1,10 @@
+"""
+Main server
+"""
 import os
 import connexion
-from securepickle import get_crypto
 from waitress import serve
+from .securepickle import get_crypto
 
 if __name__ == '__main__':
     # Initialize crypto

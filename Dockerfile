@@ -18,15 +18,18 @@ WORKDIR /code
 # add non-root user
 RUN addgroup --system user && adduser --system --no-create-home --group user
 RUN chown -R user:user /code && chmod -R 755 /code
+RUN mkdir -p /code/mapplotlib
 
 USER user
 
 COPY --from=builder /requirements-fixed.txt /code/requirements-freeze.txt
 COPY version.txt /code
-COPY optimizerapi/ /code
+COPY optimizerapi/ /code/optimizerapi
 
 ENV FLASK_ENV=production
+ENV MPLCONFIGDIR=/tmp/mapplotlib
 
 ENV PATH=/opt/venv/bin:${PATH}
+VOLUME /code/matplotlib
 
-CMD [ "python", "./server.py" ]
+CMD [ "python", "-m", "optimizerapi.server" ]

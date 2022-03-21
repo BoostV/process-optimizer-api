@@ -1,5 +1,7 @@
-from .context import securepickle
-from securepickle import pickleToString, unpickleFromString, get_crypto
+"""
+Test secure pickle feature
+"""
+from optimizerapi.securepickle import pickleToString, unpickleFromString, get_crypto
 
 
 def test_pickleToString():

@@ -13,7 +13,7 @@ Alternatively the project can be build and run with the following commands:
     pip install --upgrade pip
     
     pip install -r requirements-freeze.txt
-    python optimizerapi/server.py
+    python -m optimizerapi.server
 
 Now open [http://localhost:9090/v1.0/ui/](http://localhost:9090/v1.0/ui/) in a browser to explore the API through Swagger UI
 # Running tests
@@ -32,7 +32,7 @@ or use pytest-watch for continuously running tests
 
 Run server once and extract a fresh encryption key from the logs.
 
-    python optimizerapi/server.py
+    python -m optimizerapi.server
 
 or using docker
 

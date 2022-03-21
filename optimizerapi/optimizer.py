@@ -1,35 +1,34 @@
-import time
-from rq import Queue
-from redis import Redis
-import os
-import platform
-from time import strftime
-import json
-import json_tricks
-from ProcessOptimizer import Optimizer, expected_minimum
-from ProcessOptimizer.plots import plot_objective, plot_convergence
-from ProcessOptimizer.space import Real
-import matplotlib.pyplot as plt
-import base64
-import io
-from numbers import Number
-# from securepickle import pickleToString, unpickleFromString, get_crypto
-import securepickle
-
-import numpy
-numpy.random.seed(42)
-
-
-queue = Queue(connection=Redis())
-
-plt.switch_backend('Agg')
-
 """ProcessOptimizer web request handler
 
 This file contains the main HTTP request handlers for exposing the ProcessOptimizer API.
 The handler functions are mapped to the OpenAPI specification through the "operationId" field
 in the specification.yml file found in the folder "openapi" in the root of this project.
 """
+import os
+import platform
+import time
+from time import strftime
+import base64
+import io
+import json
+import json_tricks
+from rq import Queue
+from redis import Redis
+from ProcessOptimizer import Optimizer, expected_minimum
+from ProcessOptimizer.plots import plot_objective, plot_convergence
+from ProcessOptimizer.space import Real
+import matplotlib.pyplot as plt
+import numpy
+
+# from securepickle import pickleToString, unpickleFromString, get_crypto
+#import securepickle
+from .securepickle import pickleToString, get_crypto
+
+numpy.random.seed(42)
+
+queue = Queue(connection=Redis())
+
+plt.switch_backend('Agg')
 
 
 def run(body) -> dict:
@@ -169,8 +168,8 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
                        usepartialdependence=False)
         addPlot(plots, "objective")
 
-    resultDetails["pickled"] = securepickle.pickleToString(
-        result, securepickle.get_crypto())
+    resultDetails["pickled"] = pickleToString(
+        result, get_crypto())
 
     addVersionInfo(resultDetails["extras"])
 

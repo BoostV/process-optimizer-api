@@ -10,7 +10,7 @@ paths:
   /optimizer:
     post:
       description: Run optimizer with the specified parameters
-      operationId: optimizer.run
+      operationId: optimizerapi.optimizer.run
       responses:
         '200':
           description: Result of running the optimizer with the specified parameters
