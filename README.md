@@ -39,6 +39,7 @@ Run server once and extract a fresh encryption key from the logs.
 or using docker
 
     docker run --rm -it process-optimizer-api
+
 # Running in production
 
 Running using python
@@ -48,6 +49,15 @@ Running using python
 or use docker
 
     docker run -d --name process-optimizer-api --env PICKLE_KEY=<key from previous step> -p 9090:9090 process-optimizer-api:latest
+
+# Use job queue
+
+The API server supports distributing the calculation tasks using a Redis backed job queue.
+To start the API server in "job queue mode" set the environment variable `USE_WORKER=true` and start the server and any number of 
+worker threads using the following commands:
+
+    USE_WORKER=true python -m optimizerapi.server
+    python -m optimizerapi.worker
 
 # Adding or updating dependencies
 
