@@ -28,7 +28,7 @@ USER user
 
 COPY --from=builder /requirements-fixed.txt /code/requirements-freeze.txt
 #COPY version.txt /code
-RUN echo "${VERSION}" > /code/version.txt
+RUN echo "${VERSION}${GITHUB_REF_NAME}" > /code/version.txt
 COPY optimizerapi/ /code/optimizerapi
 
 ENV FLASK_ENV=production
