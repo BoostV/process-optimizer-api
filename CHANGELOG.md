@@ -1,6 +1,27 @@
 # Changelog
 
-## [v1.4.0](https://github.com/BoostV/process-optimizer-api/tree/HEAD)
+## [v1.4.1](https://github.com/BoostV/process-optimizer-api/tree/HEAD)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v1.4.0...HEAD)
+
+**Implemented enhancements:**
+
+- Job queue for expensive calculations [\#29](https://github.com/BoostV/process-optimizer-api/issues/29)
+
+**Fixed bugs:**
+
+- Make sure matplot has a writable folder inside the docker container [\#3](https://github.com/BoostV/process-optimizer-api/issues/3)
+
+**Closed issues:**
+
+- Update to ProcessOptimizer 0.7.3 [\#28](https://github.com/BoostV/process-optimizer-api/issues/28)
+- Issue with json objects [\#27](https://github.com/BoostV/process-optimizer-api/issues/27)
+
+**Merged pull requests:**
+
+- Feature/job queue [\#30](https://github.com/BoostV/process-optimizer-api/pull/30) ([langdal](https://github.com/langdal))
+
+## [v1.4.0](https://github.com/BoostV/process-optimizer-api/tree/v1.4.0) (2021-09-23)
 
 [Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v1.3.0...v1.4.0)
 
