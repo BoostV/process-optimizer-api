@@ -39,7 +39,7 @@ def run(body) -> dict:
     dict
         a JSON encodable dictionary representation of the result.
     """
-    if os.environ["USE_WORKER"]:
+    if "USE_WORKER" in os.environ and os.environ["USE_WORKER"]:
         job = queue.enqueue(doRunWork, body)
         while (job.return_value == None): time.sleep(0.2)
         return job.return_value
