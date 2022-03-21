@@ -1,3 +1,6 @@
+"""
+Worker that will run all tasks published to redis using RQ
+"""
 from rq import Connection, Queue, Worker
 from redis import Redis
 

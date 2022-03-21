@@ -23,7 +23,8 @@ RUN mkdir -p /code/mapplotlib
 USER user
 
 COPY --from=builder /requirements-fixed.txt /code/requirements-freeze.txt
-COPY version.txt /code
+#COPY version.txt /code
+RUN echo "${GITHUB_REF_NAME}" > /code/version.txt
 COPY optimizerapi/ /code/optimizerapi
 
 ENV FLASK_ENV=production
