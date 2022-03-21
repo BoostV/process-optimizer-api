@@ -25,8 +25,12 @@ import numpy
 from .securepickle import pickleToString, get_crypto
 
 numpy.random.seed(42)
+if "REDIS_URL" in os.environ:
+    REDIS_URL = os.environ["REDIS_URL"]
+else:
+    REDIS_URL = "redis://localhost:6379"
 
-queue = Queue(connection=Redis())
+queue = Queue(connection=Redis.from_url(REDIS_URL))
 
 plt.switch_backend('Agg')
 

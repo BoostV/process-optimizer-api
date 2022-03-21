@@ -1,4 +1,4 @@
-# Process Optimizer REST API #
+# Process Optimizer REST API
 
 This project expose a REST based API for [ProcessOptimizer](https://github.com/novonordisk-research/ProcessOptimizer)
 
@@ -11,7 +11,7 @@ Alternatively the project can be build and run with the following commands:
     python3 -m venv env
     source env/bin/activate
     pip install --upgrade pip
-    
+
     pip install -r requirements-freeze.txt
     python -m optimizerapi.server
 
@@ -26,6 +26,7 @@ Unit tetsts are located in the "tests" folder and can be run witht the following
 or use pytest-watch for continuously running tests
 
     ptw
+
 # Building docker container
 
     git describe --always > version.txt && docker build -t process-optimizer-api .
@@ -53,11 +54,13 @@ or use docker
 # Use job queue
 
 The API server supports distributing the calculation tasks using a Redis backed job queue.
-To start the API server in "job queue mode" set the environment variable `USE_WORKER=true` and start the server and any number of 
+To start the API server in "job queue mode" set the environment variable `USE_WORKER=true` and start the server and any number of
 worker threads using the following commands:
 
     USE_WORKER=true python -m optimizerapi.server
     python -m optimizerapi.worker
+
+The Redis server can be controlled through the environment variable `REDIS_URL` which defaults to `redis://localhost:6379`
 
 # Adding or updating dependencies
 

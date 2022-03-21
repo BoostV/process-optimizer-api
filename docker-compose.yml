@@ -10,8 +10,8 @@ services:
       - 9090:9090
     environment:
       - USE_WORKER=true
+      - REDIS_URL=redis://redis:6379
   worker:
-    network_mode: service:api
     restart: unless-stopped
     depends_on: 
       - redis
@@ -19,8 +19,9 @@ services:
       context: .
     scale: 10
     command: python -m optimizerapi.worker
+    environment:
+      - REDIS_URL=redis://redis:6379
   redis:
-    network_mode: service:api
     image: redis:latest
     restart: unless-stopped
     volumes:
