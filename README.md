@@ -41,7 +41,7 @@ or using docker
 
 Running using python
 
-    FLASK_ENV=production PICKLE_KEY=<key from previous step> python optimizerapi/server.py
+    FLASK_ENV=production PICKLE_KEY=<key from previous step> python -m optimizerapi.server
 
 or use docker
 
