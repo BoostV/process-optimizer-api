@@ -66,7 +66,7 @@ The Redis server can be controlled through the environment variable `REDIS_URL` 
 
 When adding a new dependency, you should manually add it to `requirements.txt` and then run the following commands:
 
-    pip install -r requirements.tx
+    pip install -r requirements.txt
     pip freeze | grep --invert-match pkg_resources > requirements-freeze.txt
 
 Now you should check if the freeze operation resulted in unwanted upates by running:

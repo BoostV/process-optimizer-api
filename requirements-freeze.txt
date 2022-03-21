@@ -29,7 +29,7 @@ openapi-spec-validator==0.2.9
 packaging==20.9
 Pillow==8.3.2
 pluggy==0.13.1
-ProcessOptimizer==0.7.1
+ProcessOptimizer==0.7.3
 py==1.10.0
 pycparser==2.20
 pyparsing==2.4.7
