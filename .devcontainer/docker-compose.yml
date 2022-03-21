@@ -30,7 +30,7 @@ services:
     image: ghcr.io/boostv/process-optimizer-frontend/server:main
     restart: unless-stopped
 
-  db:
+  redis:
     image: redis:latest
     network_mode: service:ui
     restart: unless-stopped

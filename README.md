@@ -16,6 +16,7 @@ Alternatively the project can be build and run with the following commands:
     python -m optimizerapi.server
 
 Now open [http://localhost:9090/v1.0/ui/](http://localhost:9090/v1.0/ui/) in a browser to explore the API through Swagger UI
+
 # Running tests
 
 Unit tetsts are located in the "tests" folder and can be run witht the following command
@@ -28,6 +29,7 @@ or use pytest-watch for continuously running tests
 # Building docker container
 
     git describe --always > version.txt && docker build -t process-optimizer-api .
+
 # Obtain encryption key
 
 Run server once and extract a fresh encryption key from the logs.

@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  api:
+    restart: unless-stopped
+    build:
+      context: .
+    command: python -m optimizerapi.server
+    ports:
+      - 9090:9090
+    environment:
+      - USE_WORKER=true
+  worker:
+    network_mode: service:api
+    restart: unless-stopped
+    depends_on: 
+      - redis
+    build:
+      context: .
+    scale: 10
+    command: python -m optimizerapi.worker
+  redis:
+    network_mode: service:api
+    image: redis:latest
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+  ui:
+    image: ghcr.io/boostv/process-optimizer-frontend/server:main
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    environment:
+      - API_SERVER=http://api:9090/v1.0
+
+volumes:
+  redis-data: null
