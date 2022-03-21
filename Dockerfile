@@ -1,4 +1,5 @@
 ARG GITHUB_REF_NAME=develop
+ARG GITHUB_SHA=local
 # First stage
 FROM python:3.9.1 AS builder
 
@@ -15,9 +16,11 @@ RUN pip install -r requirements-fixed.txt
 
 FROM python:3.9.1-slim
 ARG GITHUB_REF_NAME
+ARG GITHUB_SHA
 COPY --from=builder /opt/venv /opt/venv
 WORKDIR /code
 ENV VERSION=${GITHUB_REF_NAME}
+ENV SHA=${GITHUB_SHA}
 
 # add non-root user
 RUN addgroup --system user && adduser --system --no-create-home --group user
@@ -28,7 +31,7 @@ USER user
 
 COPY --from=builder /requirements-fixed.txt /code/requirements-freeze.txt
 #COPY version.txt /code
-RUN echo "${VERSION}" > /code/version.txt
+RUN echo "${VERSION}-${SHA}" > /code/version.txt
 COPY optimizerapi/ /code/optimizerapi
 
 ENV FLASK_ENV=production
