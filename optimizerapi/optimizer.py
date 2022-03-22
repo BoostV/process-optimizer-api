@@ -20,8 +20,6 @@ from ProcessOptimizer.space import Real
 import matplotlib.pyplot as plt
 import numpy
 
-# from securepickle import pickleToString, unpickleFromString, get_crypto
-#import securepickle
 from .securepickle import pickleToString, get_crypto
 
 numpy.random.seed(42)
@@ -44,24 +42,27 @@ def run(body) -> dict:
         a JSON encodable dictionary representation of the result.
     """
     if "USE_WORKER" in os.environ and os.environ["USE_WORKER"]:
-        job = queue.enqueue(doRunWork, body)
-        while (job.return_value == None):
+        job = queue.enqueue(do_run_work, body)
+        while job.return_value is None:
             time.sleep(0.2)
         return job.return_value
-    else:
-        return doRunWork(body)
+    return do_run_work(body)
 
 
-def doRunWork(body) -> dict:
+def do_run_work(body) -> dict:
+    """"Handle the run request
+    """
     # print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
     extras = {}
-    if ("extras" in body):
+    if "extras" in body:
         extras = body["extras"]
     # print("Received extras " + str(extras))
-    space = [(convertNumberType(x["from"], x["type"]), convertNumberType(x["to"], x["type"])) if (
-        x["type"] == "discrete" or x["type"] == "continuous") else tuple(x["categories"]) for x in cfg["space"]]
+    space = [(convert_number_type(x["from"], x["type"]),
+              convert_number_type(x["to"], x["type"]))
+             if (x["type"] == "discrete" or x["type"] == "continuous")
+             else tuple(x["categories"]) for x in cfg["space"]]
     dimensions = [x["name"] for x in cfg["space"]]
     hyperparams = {
         'base_estimator': cfg["baseEstimator"],
@@ -76,7 +77,7 @@ def doRunWork(body) -> dict:
         Xi, Yi = map(list, zip(*data))
 
     n_objectives = 1
-    if (len(Yi) > 0):
+    if len(Yi) > 0:
         n_objectives = len(Yi[0])
 
     optimizer = Optimizer(space, **hyperparams, n_objectives=n_objectives)
@@ -90,7 +91,7 @@ def doRunWork(body) -> dict:
     else:
         result = []
 
-    response = processResult(
+    response = process_result(
         result, optimizer, dimensions, cfg, extras, data, space)
 
     response["result"]["extras"]["parameters"] = {
@@ -107,14 +108,15 @@ def doRunWork(body) -> dict:
     return json.loads(json_tricks.dumps(response))
 
 
-def convertNumberType(value, numType):
-    if numType == "discrete":
+def convert_number_type(value, num_type):
+    """Converts input value to either integer or float depending on the string supplied in numType
+    """
+    if num_type == "discrete":
         return int(value)
-    else:
-        return float(value)
+    return float(value)
 
 
-def processResult(result, optimizer, dimensions, cfg, extras, data, space):
+def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     """Extracts results from the OptimizerResult.
 
     Parameters
@@ -142,63 +144,63 @@ def processResult(result, optimizer, dimensions, cfg, extras, data, space):
         The dictionary has this structure:
         {
             plots: [{id: plotname, plot: BASE64 encoded png}],
-            result: { dict with relevant properties, e.g., 
-                suggestions for next experiment, 
+            result: { dict with relevant properties, e.g.,
+                suggestions for next experiment,
                 model representation etc.}
         }
     """
-    resultDetails = {
+    result_details = {
         "next": [],
-        "models": [processModel(model, optimizer) for model in result],
+        "models": [process_model(model, optimizer) for model in result],
         "pickled": "",
         "extras": {}
     }
     plots = []
     response = {
         "plots": plots,
-        "result": resultDetails
+        "result": result_details
     }
 
     # In the following section details that should be reported to
     # clients should go into the "resultDetails" dictionary and plots
     # go into the "plots" list (this is handled by calling the "addPlot" function)
-    experimentSuggestionCount = 1
-    if ("experimentSuggestionCount" in extras):
-        experimentSuggestionCount = extras["experimentSuggestionCount"]
+    experiment_suggestion_count = 1
+    if "experimentSuggestionCount" in extras:
+        experiment_suggestion_count = extras["experimentSuggestionCount"]
 
-    next_exp = optimizer.ask(n_points=experimentSuggestionCount)
-    resultDetails["next"] = round_to_length_scales(next_exp, optimizer.space)
+    next_exp = optimizer.ask(n_points=experiment_suggestion_count)
+    result_details["next"] = round_to_length_scales(next_exp, optimizer.space)
 
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
         for idx, model in enumerate(result):
             plot_convergence(model)
-            addPlot(plots, "convergence_%d" % idx)
+            add_plot(plots, f"convergence_{idx}")
 
             plot_objective(model, dimensions=dimensions,
                            usepartialdependence=False)
-            addPlot(plots, "objective_%d" % idx)
+            add_plot(plots, f"objective_{idx}")
 
         if optimizer.n_objectives == 1:
-            min = expected_minimum(result[0])
+            minimum = expected_minimum(result[0])
 
-            resultDetails["expected_minimum"] = [
-                round_to_length_scales(min[0], optimizer.space), round(min[1], 2)]
+            result_details["expected_minimum"] = [
+                round_to_length_scales(minimum[0], optimizer.space), round(minimum[1], 2)]
         else:
             plot_Pareto(optimizer)
-            addPlot(plots, "pareto")
+            add_plot(plots, "pareto")
 
-    resultDetails["pickled"] = pickleToString(
+    result_details["pickled"] = pickleToString(
         result, get_crypto())
 
-    addVersionInfo(resultDetails["extras"])
+    add_version_info(result_details["extras"])
 
     # print(str(response))
     return response
 
 
-def processModel(model, optimizer):
+def process_model(model, optimizer):
     """Extract model specific results.
 
     Parameters
@@ -211,17 +213,17 @@ def processModel(model, optimizer):
     dict
         a dictionary containing the model specific results.
     """
-    resultDetails = {
+    result_details = {
         "expected_minimum": [],
         "extras": {}
     }
-    min = expected_minimum(model)
-    resultDetails["expected_minimum"] = [
-        round_to_length_scales(min[0], optimizer.space), round(min[1], 2)]
-    return resultDetails
+    minimum = expected_minimum(model)
+    result_details["expected_minimum"] = [
+        round_to_length_scales(minimum[0], optimizer.space), round(minimum[1], 2)]
+    return result_details
 
 
-def addPlot(result, id="generic", close=True, debug=False):
+def add_plot(result, id="generic", close=True, debug=False):
     """Add the current figure to result as a base64 encoded string.
 
     This function should be called after every plot that is generated.
@@ -238,14 +240,14 @@ def addPlot(result, id="generic", close=True, debug=False):
         If set to True the current matplot figure is cleared after the plot
         has been saved. (default is True)
     debug : bool
-        Indicate if plots should be written to local files. 
+        Indicate if plots should be written to local files.
         If set to True plots are stored in tmp/process_optimizer_[id].png
         relative to current working directory. (default is False)
     """
-    pic_IObytes = io.BytesIO()
-    plt.savefig(pic_IObytes,  format='png', bbox_inches='tight')
-    pic_IObytes.seek(0)
-    pic_hash = base64.b64encode(pic_IObytes.read())
+    pic_io_bytes = io.BytesIO()
+    plt.savefig(pic_io_bytes,  format='png', bbox_inches='tight')
+    pic_io_bytes.seek(0)
+    pic_hash = base64.b64encode(pic_io_bytes.read())
     result.append({
         "id": id,
         "plot": str(pic_hash, "utf-8")
@@ -283,7 +285,7 @@ def round_to_length_scales(x, space):
     """
     for dim, i in zip(space.dimensions, range(len(space.dimensions))):
         # Checking if dimension is real. Else do nothing
-        if type(dim) == Real:
+        if isinstance(dim, Real):
             length = dim.high - dim.low
             # Length scale of the dimension is 1/1000 of the dimension length
             length_scale = length/1000
@@ -301,7 +303,7 @@ def round_to_length_scales(x, space):
     return x
 
 
-def addVersionInfo(extras):
+def add_version_info(extras):
     """Add various version information to the dictionary supplied.
 
     Parameters
@@ -310,15 +312,15 @@ def addVersionInfo(extras):
             The dictionary to hold the version information
     """
 
-    with open("requirements-freeze.txt", "r") as requirementsFile:
-        requirements = requirementsFile.readlines()
+    with open("requirements-freeze.txt", "r", encoding="utf-8") as requirements_file:
+        requirements = requirements_file.readlines()
         extras["libraries"] = [x.rstrip() for x in requirements]
 
     extras["pythonVersion"] = platform.python_version()
 
     if os.path.isfile("version.txt"):
-        with open("version.txt", "r") as versionFile:
-            extras["apiVersion"] = versionFile.readline().rstrip()
+        with open("version.txt", "r", encoding="utf-8") as version_file:
+            extras["apiVersion"] = version_file.readline().rstrip()
     else:
         import subprocess
         try:
