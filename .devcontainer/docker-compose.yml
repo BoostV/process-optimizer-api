@@ -27,7 +27,7 @@ services:
     # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
     # (Adding the "ports" property to this file will not forward from a Codespace.)
   ui:
-    image: ghcr.io/boostv/process-optimizer-frontend/server:main
+    image: ghcr.io/boostv/process-optimizer-frontend:pr-140
     restart: unless-stopped
 
   redis:
