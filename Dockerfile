@@ -1,7 +1,7 @@
 ARG GITHUB_REF_NAME=develop
 ARG GITHUB_SHA=local
 # First stage
-FROM python:3.9.1 AS builder
+FROM python:3.9-bullseye AS builder
 
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
@@ -14,7 +14,7 @@ RUN pip install -r requirements-fixed.txt
 
 # Second stage
 
-FROM python:3.9.1-slim
+FROM python:3.9-bullseye
 ARG GITHUB_REF_NAME
 ARG GITHUB_SHA
 COPY --from=builder /opt/venv /opt/venv
