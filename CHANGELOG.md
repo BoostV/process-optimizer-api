@@ -1,8 +1,20 @@
 # Changelog
 
-## [v1.4.1](https://github.com/BoostV/process-optimizer-api/tree/HEAD)
+## [v2.0.0](https://github.com/BoostV/process-optimizer-api/tree/HEAD)
 
-[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v1.4.0...HEAD)
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v1.4.1...v2.0.0)
+
+**Implemented enhancements:**
+
+- Feature/multi objective [\#31](https://github.com/BoostV/process-optimizer-api/pull/31) ([langdal](https://github.com/langdal))
+
+**Merged pull requests:**
+
+- Build docker image for x86 and arm [\#32](https://github.com/BoostV/process-optimizer-api/pull/32) ([langdal](https://github.com/langdal))
+
+## [v1.4.1](https://github.com/BoostV/process-optimizer-api/tree/v1.4.1) (2022-03-21)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v1.4.0...v1.4.1)
 
 **Implemented enhancements:**
 
