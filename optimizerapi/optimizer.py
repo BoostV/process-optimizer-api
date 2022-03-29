@@ -151,7 +151,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     """
     result_details = {
         "next": [],
-        "models": [process_model(model, optimizer) for model in result],
+        "models": [],
         "pickled": "",
         "extras": {}
     }
@@ -174,6 +174,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
+        result_details["models"] = [process_model(model, optimizer) for model in result]
         for idx, model in enumerate(result):
             plot_convergence(model)
             add_plot(plots, f"convergence_{idx}")
