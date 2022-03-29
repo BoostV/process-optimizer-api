@@ -50,7 +50,7 @@ toml==0.10.2
 tornado==6.1
 typing-extensions==3.7.4.3
 urllib3==1.26.5
-waitress==2.0.0
+waitress==2.1.1
 watchdog==2.0.2
 Werkzeug==1.0.1
 wrapt==1.13.3
