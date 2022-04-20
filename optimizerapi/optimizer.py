@@ -180,7 +180,8 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
             add_plot(plots, f"convergence_{idx}")
 
             plot_objective(model, dimensions=dimensions,
-                           usepartialdependence=False)
+                           usepartialdependence=False,
+                           show_confidence=True)
             add_plot(plots, f"objective_{idx}")
 
         if optimizer.n_objectives == 1:
