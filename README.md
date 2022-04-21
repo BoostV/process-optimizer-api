@@ -4,7 +4,7 @@ This project expose a REST based API for [ProcessOptimizer](https://github.com/n
 
 # How do I get started
 
-If you have Docker installed the API can be started locally by running the script `build-and-run.sh`
+If you have Docker installed the API can be started locally, in development mode, by running the script `build-and-run.sh`
 
 Alternatively the project can be build and run with the following commands:
 
@@ -61,6 +61,29 @@ worker threads using the following commands:
     python -m optimizerapi.worker
 
 The Redis server can be controlled through the environment variable `REDIS_URL` which defaults to `redis://localhost:6379`
+
+# Use [CORS](https://flask-cors.readthedocs.io/en/latest/index.html)
+
+The API server supports exposing its functionality to other origins than its own.
+To start the API server in "CORS mode" set the environment variable `CORS_ORIGIN=.*` and start the server.
+This opens up the API server to any origin that might want to request it.
+
+    CORS_ORIGIN=.* python -m optimizerapi.server
+
+You might want to lock the origin down a little tighter. The `CORS_ORIGIN` variable
+is a regular expression and can be used to lock the server to a single host or multiple.
+
+A single specific origin:
+
+    CORS_ORIGIN="https://prod.brownie.projects.alexandra.dk" python -m optimizerapi.server
+
+All subdomains hosted by alexandra.dk:
+
+    CORS_ORIGIN="https://.*.alexandra.dk" python -m optimizerapi.server
+
+Two specific origins:
+
+    CORS_ORIGIN="(https://prod.brownie.projects.alexandra.dk|https://prod.cake.projects.alexandra.dk)" python -m optimizerapi.server
 
 # Adding or updating dependencies
 
