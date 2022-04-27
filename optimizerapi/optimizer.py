@@ -11,6 +11,8 @@ from time import strftime
 import base64
 import io
 import json
+import subprocess
+import traceback
 import json_tricks
 from rq import Queue
 from redis import Redis
@@ -50,6 +52,23 @@ def run(body) -> dict:
 
 
 def do_run_work(body) -> dict:
+    """"Handle the run request
+    """
+    try:
+        return __handle_run(body)
+    except IOError as err:
+        return ({'message': 'I/O error', 'error': str(err)}, 400)
+    except TypeError as err:
+        return ({'message': 'Type error', 'error': str(err)}, 400)
+    except ValueError as err:
+        return ({'message': 'Validation error', 'error': str(err)}, 400)
+    except Exception as err:
+        # Log unknown exceptions to support debugging
+        traceback.print_exc()
+        return ({'message': 'Unknown error', 'error': str(err)}, 500)
+
+
+def __handle_run(body) -> dict:
     """"Handle the run request
     """
     # print("Receive: " + str(body))
@@ -174,7 +193,8 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
-        result_details["models"] = [process_model(model, optimizer) for model in result]
+        result_details["models"] = [process_model(
+            model, optimizer) for model in result]
         for idx, model in enumerate(result):
             plot_convergence(model)
             add_plot(plots, f"convergence_{idx}")
@@ -324,11 +344,10 @@ def add_version_info(extras):
         with open("version.txt", "r", encoding="utf-8") as version_file:
             extras["apiVersion"] = version_file.readline().rstrip()
     else:
-        import subprocess
         try:
             extras["apiVersion"] = subprocess.check_output(
                 ["git", "describe", "--always"]).strip().decode()
-        except:
+        except IOError:
             extras["apiVersion"] = 'Unknown development version'
 
     extras["timeOfExecution"] = strftime("%Y-%m-%d %H:%M:%S")
