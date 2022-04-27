@@ -12,18 +12,105 @@ paths:
       description: Run optimizer with the specified parameters
       operationId: optimizerapi.optimizer.run
       responses:
-        '200':
+        "200":
           description: Result of running the optimizer with the specified parameters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/result'
+                $ref: "#/components/schemas/result"
+
+        "400":
+          description: Bad input data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+        "500":
+          description: Unknown server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/experiment'
+              $ref: "#/components/schemas/experiment"
+            examples:
+              minimal:
+                value:
+                  {
+                    "extras": { "experimentSuggestionCount": 1 },
+                    "data": [],
+                    "optimizerConfig":
+                      {
+                        "baseEstimator": "GP",
+                        "acqFunc": "gp_hedge",
+                        "initialPoints": 3,
+                        "kappa": 1.96,
+                        "xi": 0.01,
+                        "space":
+                          [
+                            {
+                              "type": "continuous",
+                              "name": "test",
+                              "from": 1,
+                              "to": 2,
+                            },
+                          ],
+                      },
+                  }
+              complete:
+                value:
+                  {
+                    "extras": { "experimentSuggestionCount": 3 },
+                    "data":
+                      [
+                        { "xi": [0, 128, 255], "yi": [5] },
+                        { "xi": [128, 255, 128], "yi": [2] },
+                        { "xi": [255, 0, 0], "yi": [10] },
+                        { "xi": [172, 145, 238], "yi": [7] },
+                        { "xi": [153, 230, 157], "yi": [1] },
+                        { "xi": [3, 207, 0], "yi": [0] },
+                        { "xi": [69, 85, 85], "yi": [9] },
+                        { "xi": [214, 65, 178], "yi": [3] },
+                        { "xi": [7, 209, 4], "yi": [0] },
+                        { "xi": [88, 165, 187], "yi": [4] },
+                        { "xi": [255, 208, 0], "yi": [8] },
+                        { "xi": [0, 85, 2], "yi": [1] },
+                        { "xi": [143, 46, 46], "yi": [5] },
+                      ],
+                    "optimizerConfig":
+                      {
+                        "baseEstimator": "GP",
+                        "acqFunc": "gp_hedge",
+                        "initialPoints": 3,
+                        "kappa": 1.96,
+                        "xi": 0.01,
+                        "space":
+                          [
+                            {
+                              "type": "discrete",
+                              "name": "Red",
+                              "from": 0,
+                              "to": 255,
+                            },
+                            {
+                              "type": "discrete",
+                              "name": "Green",
+                              "from": 0,
+                              "to": 255,
+                            },
+                            {
+                              "type": "discrete",
+                              "name": "Blue",
+                              "from": 0,
+                              "to": 255,
+                            },
+                          ],
+                      },
+                  }
 
 components:
   schemas:
@@ -54,7 +141,7 @@ components:
           properties:
             baseEstimator:
               type: string
-            acqFunc: 
+            acqFunc:
               type: string
             initialPoints:
               type: integer
@@ -70,7 +157,7 @@ components:
                   type:
                     type: string
                     description: Type of the dimension. Can be category, discrete or continuous
-                  name: 
+                  name:
                     type: string
                   from:
                     type: number
@@ -83,7 +170,7 @@ components:
                 required:
                   - type
                   - name
-                  
+
       required:
         - data
         - optimizerConfig
@@ -125,3 +212,13 @@ components:
                     type: object
             extras:
               type: object
+    error:
+      title: Errors returned by the API
+      type: object
+      properties:
+        message:
+          type: string
+          description: Human readable description of the error
+        error:
+          type: string
+          description: Detailed error message as returned from the underlying routines
