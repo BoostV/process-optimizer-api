@@ -27,7 +27,8 @@
 	"extensions": [
 		"ms-python.python",
 		"ms-python.vscode-pylance",
-		"mhutchie.git-graph"
+		"mhutchie.git-graph",
+		"42Crunch.vscode-openapi"
 	],
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// This can be used to network with other containers or the host.
