@@ -77,7 +77,7 @@ def __handle_run(body) -> dict:
     extras = {}
     if "extras" in body:
         extras = body["extras"]
-    # print("Received extras " + str(extras))
+    print("Received extras " + str(extras))
     space = [(convert_number_type(x["from"], x["type"]),
               convert_number_type(x["to"], x["type"]))
              if (x["type"] == "discrete" or x["type"] == "continuous")
