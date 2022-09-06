@@ -179,6 +179,10 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
         "plots": plots,
         "result": result_details
     }
+    # GraphFormat should, at the moment, be either "png" or "none". Default (legacy)
+    # behavior is "png", so the API returns png images. Any other input is interpreted
+    # as "None" at the moment.
+    graph_format = extras.get("graphFormat","png")
 
     # In the following section details that should be reported to
     # clients should go into the "resultDetails" dictionary and plots
@@ -190,7 +194,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     next_exp = optimizer.ask(n_points=experiment_suggestion_count)
     result_details["next"] = round_to_length_scales(next_exp, optimizer.space)
 
-    if len(data) >= cfg["initialPoints"]:
+    if len(data) >= cfg["initialPoints"] and graph_format == "png":
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
         result_details["models"] = [process_model(
