@@ -71,20 +71,20 @@ def test_generates_plots_when_run_with_more_than_initialPoints_samples():
     assert len(result["plots"]) == 2
 
 
-def test_deselcting_plots():
+def test_deselecting_plots():
     result = optimizer.run(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
-        "extras": {"graphFormat","png"}
+        "extras": {"graphFormat": "png"}
     })
     validateResult(result)
     assert len(result["result"]["models"]) > 0
     assert len(result["plots"]) == 2
-    
+
     result = optimizer.run(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
-        "extras": {"graphFormat","none"}
+        "extras": {"graphFormat": "none"}
     })
     validateResult(result)
     assert len(result["result"]["models"]) > 0
