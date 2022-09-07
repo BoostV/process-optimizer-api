@@ -71,6 +71,26 @@ def test_generates_plots_when_run_with_more_than_initialPoints_samples():
     assert len(result["plots"]) == 2
 
 
+def test_deselcting_plots():
+    result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"graphFormat","png"}
+    })
+    validateResult(result)
+    assert len(result["result"]["models"]) > 0
+    assert len(result["plots"]) == 2
+    
+    result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"graphFormat","none"}
+    })
+    validateResult(result)
+    assert len(result["result"]["models"]) > 0
+    assert len(result["plots"]) == 0
+
+
 def test_can_accept_multi_objective_data():
     result = optimizer.run(body={
         "data": sampleMultiObjectiveData,
