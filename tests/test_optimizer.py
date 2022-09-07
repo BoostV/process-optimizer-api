@@ -81,6 +81,7 @@ def test_deselecting_plots():
     assert len(result["result"]["models"]) > 0
     assert len(result["plots"]) == 2
 
+    # If grapFormat is none, no plots should be returned. This should be faster.
     result = optimizer.run(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
