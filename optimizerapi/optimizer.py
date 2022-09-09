@@ -179,6 +179,10 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
         "plots": plots,
         "result": result_details
     }
+    # GraphFormat should, at the moment, be either "png" or "none". Default (legacy)
+    # behavior is "png", so the API returns png images. Any other input is interpreted
+    # as "None" at the moment.
+    graph_format = extras.get("graphFormat", "png")
 
     # In the following section details that should be reported to
     # clients should go into the "resultDetails" dictionary and plots
@@ -195,23 +199,24 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
         # processed more than "initialPoints" data points
         result_details["models"] = [process_model(
             model, optimizer) for model in result]
-        for idx, model in enumerate(result):
-            plot_convergence(model)
-            add_plot(plots, f"convergence_{idx}")
+        if graph_format == "png":
+            for idx, model in enumerate(result):
+                plot_convergence(model)
+                add_plot(plots, f"convergence_{idx}")
 
-            plot_objective(model, dimensions=dimensions,
-                           usepartialdependence=False,
-                           show_confidence=True)
-            add_plot(plots, f"objective_{idx}")
+                plot_objective(model, dimensions=dimensions,
+                               usepartialdependence=False,
+                               show_confidence=True)
+                add_plot(plots, f"objective_{idx}")
 
-        if optimizer.n_objectives == 1:
-            minimum = expected_minimum(result[0])
+            if optimizer.n_objectives == 1:
+                minimum = expected_minimum(result[0])
 
-            result_details["expected_minimum"] = [
-                round_to_length_scales(minimum[0], optimizer.space), round(minimum[1], 2)]
-        else:
-            plot_Pareto(optimizer)
-            add_plot(plots, "pareto")
+                result_details["expected_minimum"] = [
+                    round_to_length_scales(minimum[0], optimizer.space), round(minimum[1], 2)]
+            else:
+                plot_Pareto(optimizer)
+                add_plot(plots, "pareto")
 
     result_details["pickled"] = pickleToString(
         result, get_crypto())

@@ -71,6 +71,40 @@ def test_generates_plots_when_run_with_more_than_initialPoints_samples():
     assert len(result["plots"]) == 2
 
 
+def test_specifying_png_plots():
+    result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"graphFormat": "png"}
+    })
+    validateResult(result)
+    assert len(result["result"]["models"]) > 0
+    assert len(result["plots"]) == 2
+
+
+def test_specifying_empty_extras_preserve_legacy_plotting():
+    result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {}
+    })
+    validateResult(result)
+    assert len(result["result"]["models"]) > 0
+    assert len(result["plots"]) == 2
+
+
+def test_deselecting_plots():
+    # If graphFormat is none, no plots should be returned. This should be faster.
+    result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"graphFormat": "none"}
+    })
+    validateResult(result)
+    assert len(result["result"]["models"]) > 0
+    assert len(result["plots"]) == 0
+
+
 def test_can_accept_multi_objective_data():
     result = optimizer.run(body={
         "data": sampleMultiObjectiveData,
