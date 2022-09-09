@@ -82,17 +82,6 @@ def test_specifying_png_plots():
     assert len(result["plots"]) == 2
 
 
-def test_specifying_png_plots():
-    result = optimizer.run(body={
-        "data": sampleData,
-        "optimizerConfig": sampleConfig,
-        "extras": {"graphFormat": "png"}
-    })
-    validateResult(result)
-    assert len(result["result"]["models"]) > 0
-    assert len(result["plots"]) == 2
-
-
 def test_specifying_empty_extras_preserve_legacy_plotting():
     result = optimizer.run(body={
         "data": sampleData,
