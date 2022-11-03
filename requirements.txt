@@ -2,7 +2,7 @@ connexion==2.7.0
 connexion[swagger-ui]
 Flask==1.1.2
 Flask-Cors==3.0.10
-ProcessOptimizer==0.7.3
+ProcessOptimizer==0.7.6
 json-tricks==3.15.5
 cryptography==3.4.7
 waitress==2.1.1
