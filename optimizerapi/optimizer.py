@@ -184,6 +184,8 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     # as "None" at the moment.
     graph_format = extras.get("graphFormat", "png")
 
+    objective_pars = extras.get("objectivePars", "result")
+
     # In the following section details that should be reported to
     # clients should go into the "resultDetails" dictionary and plots
     # go into the "plots" list (this is handled by calling the "addPlot" function)
@@ -206,7 +208,8 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
 
                 plot_objective(model, dimensions=dimensions,
                                usepartialdependence=False,
-                               show_confidence=True)
+                               show_confidence=True, 
+                               pars=objective_pars)
                 add_plot(plots, f"objective_{idx}")
 
             if optimizer.n_objectives == 1:
