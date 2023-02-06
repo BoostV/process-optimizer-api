@@ -1,6 +1,23 @@
 # Changelog
 
-## [v2.1.0](https://github.com/BoostV/process-optimizer-api/tree/HEAD)
+## [v2.1.1](https://github.com/BoostV/process-optimizer-api/tree/v2.1.1)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v2.1.0...v2.1.1)
+
+**Closed issues:**
+
+- Deap 1.3.1 lead to error [\#51](https://github.com/BoostV/process-optimizer-api/issues/51)
+- Allow deselection of plotting [\#46](https://github.com/BoostV/process-optimizer-api/issues/46)
+
+**Merged pull requests:**
+
+- Pin dependency for ProcessOptimizer [\#52](https://github.com/BoostV/process-optimizer-api/pull/52) ([langdal](https://github.com/langdal))
+- Bump waitress from 2.1.1 to 2.1.2 [\#49](https://github.com/BoostV/process-optimizer-api/pull/49) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Option for no plot [\#47](https://github.com/BoostV/process-optimizer-api/pull/47) ([SRFU-NN](https://github.com/SRFU-NN))
+- Bump waitress from 2.0.0 to 2.1.1 [\#35](https://github.com/BoostV/process-optimizer-api/pull/35) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump pillow from 8.3.2 to 9.0.1 [\#34](https://github.com/BoostV/process-optimizer-api/pull/34) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v2.1.0](https://github.com/BoostV/process-optimizer-api/tree/v2.1.0) (2022-04-28)
 
 [Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v2.0.1...v2.1.0)
 
