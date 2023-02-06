@@ -17,7 +17,7 @@ import json_tricks
 from rq import Queue
 from redis import Redis
 from ProcessOptimizer import Optimizer, expected_minimum
-from ProcessOptimizer.plots import plot_objective, plot_convergence, plot_Pareto
+from ProcessOptimizer.plots import plot_objective, plot_convergence, plot_Pareto_bokeh
 from ProcessOptimizer.space import Real
 import matplotlib.pyplot as plt
 import numpy
@@ -162,7 +162,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
         a dictionary containing results and plots.
         The dictionary has this structure:
         {
-            plots: [{id: plotname, plot: BASE64 encoded png}],
+            plots: [{id: plotname, plot: BASE64 encoded png or JSON-object}],
             result: { dict with relevant properties, e.g.,
                 suggestions for next experiment,
                 model representation etc.}
@@ -202,12 +202,12 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
         if graph_format == "png":
             for idx, model in enumerate(result):
                 plot_convergence(model)
-                add_plot(plots, f"convergence_{idx}")
+                add_plt_plot(plots, f"convergence_{idx}")
 
                 plot_objective(model, dimensions=dimensions,
                                usepartialdependence=False,
                                show_confidence=True)
-                add_plot(plots, f"objective_{idx}")
+                add_plt_plot(plots, f"objective_{idx}")
 
             if optimizer.n_objectives == 1:
                 minimum = expected_minimum(result[0])
@@ -215,8 +215,11 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 result_details["expected_minimum"] = [
                     round_to_length_scales(minimum[0], optimizer.space), round(minimum[1], 2)]
             else:
-                plot_Pareto(optimizer)
-                add_plot(plots, "pareto")
+                json_bokeh = plot_Pareto_bokeh(optimizer,
+                                               dimensions=dimensions,
+                                               return_data=False,
+                                               return_type_bokeh='json')
+                add_JSON_item(plots, json_bokeh, id="pareto")
 
     result_details["pickled"] = pickleToString(
         result, get_crypto())
@@ -250,7 +253,7 @@ def process_model(model, optimizer):
     return result_details
 
 
-def add_plot(result, id="generic", close=True, debug=False):
+def add_plt_plot(result, id="generic", close=True, debug=False):
     """Add the current figure to result as a base64 encoded string.
 
     This function should be called after every plot that is generated.
@@ -281,12 +284,43 @@ def add_plot(result, id="generic", close=True, debug=False):
     })
 
     if debug:
-        with open('tmp/process_optimizer_' + id + '.png', 'wb') as imgfile:
-            plt.savefig(imgfile,  bbox_inches='tight', pad_inches=0)
-
-    # print("IMAGE: " + str(pic_hash, "utf-8"))
+        # with open('tmp/process_optimizer_' + id + '.png', 'wb') as imgfile:
+        #     plt.savefig(imgfile,  bbox_inches='tight', pad_inches=0)
+        print("IMAGE: " + str(pic_hash, "utf-8"))
     if close:
         plt.clf()
+
+
+def add_JSON_item(result, json_obj, id="generic", clean=True, debug=False):
+    """Add the 'json_obj' to result as a base64 encoded string.
+
+    This function should be called after every plot that is generated.
+    It takes the current state of the figure canvas and writes it to
+    a base64 encoded string which is then appended to the list supplied.
+
+    Parameters
+    ----------
+    result : list
+        The list of plots to which new plots should be addeed.
+    json_obj : json.dumps-object
+        A Bokeh json-export object that .
+    id : str
+        Identifier for the plot (default is "generic")
+    debug : bool
+        Indicate if plots should be written to local files.
+        If set to True plots are stored in tmp/process_optimizer_[id].png
+        relative to current working directory. (default is False)
+    """
+    result.append({
+        "id": id,
+        "plot": json_obj
+    })
+    if debug:
+        print("JSON:\n")
+        print(json_obj)
+
+    if clean:
+        del json_obj
 
 
 def round_to_length_scales(x, space):
