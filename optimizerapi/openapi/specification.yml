@@ -121,6 +121,12 @@ components:
         extras:
           description: A plain JSON object that can contain arbitrary values
           type: object
+          properties:
+            objectivePars:
+              type: string
+              enum:
+                - result
+                - expected_minimum
         data:
           type: array
           items:
