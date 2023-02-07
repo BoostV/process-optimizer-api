@@ -1,6 +1,18 @@
 # Changelog
 
-## [v2.1.1](https://github.com/BoostV/process-optimizer-api/tree/v2.1.1)
+## [v2.2.0](https://github.com/BoostV/process-optimizer-api/tree/v2.2.0)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v2.1.1...v2.2.0)
+
+**Implemented enhancements:**
+
+- Show expected minimum in objective function [\#53](https://github.com/BoostV/process-optimizer-api/issues/53)
+
+**Merged pull requests:**
+
+- Read plot\_objective "pars" from extras [\#54](https://github.com/BoostV/process-optimizer-api/pull/54) ([langdal](https://github.com/langdal))
+
+## [v2.1.1](https://github.com/BoostV/process-optimizer-api/tree/v2.1.1) (2023-02-06)
 
 [Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v2.1.0...v2.1.1)
 
