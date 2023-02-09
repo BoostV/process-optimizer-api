@@ -127,6 +127,10 @@ components:
               enum:
                 - result
                 - expected_minimum
+            graphFormat:
+              type: string
+          additionalProperties:
+            type: string
         data:
           type: array
           items:
