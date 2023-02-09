@@ -129,6 +129,8 @@ components:
                 - expected_minimum
             graphFormat:
               type: string
+            experimentSuggestionCount:
+              type: number
           additionalProperties:
             type: string
         data:
