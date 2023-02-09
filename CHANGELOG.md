@@ -1,6 +1,18 @@
 # Changelog
 
-## [v2.2.0](https://github.com/BoostV/process-optimizer-api/tree/v2.2.0)
+## [v2.2.1](https://github.com/BoostV/process-optimizer-api/tree/v2.2.1)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v2.2.0...v2.2.1)
+
+**Fixed bugs:**
+
+- API spec does not permit arbitrary keys in extras [\#55](https://github.com/BoostV/process-optimizer-api/issues/55)
+
+**Merged pull requests:**
+
+- Allow arbitrary key names in extras [\#56](https://github.com/BoostV/process-optimizer-api/pull/56) ([langdal](https://github.com/langdal))
+
+## [v2.2.0](https://github.com/BoostV/process-optimizer-api/tree/v2.2.0) (2023-02-07)
 
 [Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v2.1.1...v2.2.0)
 
