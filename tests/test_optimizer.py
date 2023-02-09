@@ -44,7 +44,7 @@ def validateResult(result):
     assert "result" in result
     assert "models" in result["result"]
     assert "next" in result["result"]
-    assert len(result["result"]["next"]) == len(sampleConfig["space"])
+    assert all(len(x) == len(sampleConfig["space"]) for x in result["result"]["next"])
     assert "pickled" in result["result"]
     assert len(result["result"]["pickled"]) > 1
     if len(result["result"]["models"]) > 0:
