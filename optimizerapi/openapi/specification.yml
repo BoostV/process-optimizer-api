@@ -208,7 +208,11 @@ components:
             next:
               type: array
               items:
-                type: number
+                type: array
+                items:
+                  anyOf:
+                    - type: string
+                    - type: number
             models:
               type: array
               items:
