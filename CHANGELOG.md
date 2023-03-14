@@ -1,6 +1,26 @@
 # Changelog
 
-## [v2.2.1](https://github.com/BoostV/process-optimizer-api/tree/v2.2.1)
+## [v3.0.0](https://github.com/BoostV/process-optimizer-api/tree/v3.0.0)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v2.3.0...v3.0.0)
+
+**Fixed bugs:**
+
+- Minor errors in API spec [\#57](https://github.com/BoostV/process-optimizer-api/issues/57)
+
+**Merged pull requests:**
+
+- Support authentication [\#59](https://github.com/BoostV/process-optimizer-api/pull/59) ([langdal](https://github.com/langdal))
+
+## [v2.3.0](https://github.com/BoostV/process-optimizer-api/tree/v2.3.0) (2023-02-09)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v2.2.1...v2.3.0)
+
+**Merged pull requests:**
+
+- 57 minor errors in api spec [\#58](https://github.com/BoostV/process-optimizer-api/pull/58) ([langdal](https://github.com/langdal))
+
+## [v2.2.1](https://github.com/BoostV/process-optimizer-api/tree/v2.2.1) (2023-02-09)
 
 [Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v2.2.0...v2.2.1)
 
