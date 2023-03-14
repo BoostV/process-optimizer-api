@@ -85,6 +85,21 @@ Two specific origins:
 
     CORS_ORIGIN="(https://prod.brownie.projects.alexandra.dk|https://prod.cake.projects.alexandra.dk)" python -m optimizerapi.server
 
+# Using authentication
+
+API endpoints can be protected by either a static API key or using a Keycloak OIDC server.  
+The static API key is configured by the environment variable `AUTH_API_KEY`
+
+Keycloak is configured using the following environement variables
+
+
+|Name               |Description                        |
+|-------------------|-----------------------------------|
+|AUTH_SERVER        |Base url of your Keycloak server   |
+|AUTH_REALM_NAME    |OAuth realm name                   |
+|AUTH_CLIENT_ID     |Client ID                          |
+|AUTH_CLIENT_SECRET |Client secret                      |
+
 # Adding or updating dependencies
 
 When adding a new dependency, you should manually add it to `requirements.txt` and then run the following commands:

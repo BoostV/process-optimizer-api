@@ -5,16 +5,15 @@ import os
 import re
 import connexion
 from waitress import serve
-from .securepickle import get_crypto
 from flask_cors import CORS
+from .securepickle import get_crypto
 
 if __name__ == '__main__':
     # Initialize crypto
     get_crypto()
     app = connexion.FlaskApp(
         __name__, port=9090, specification_dir='./openapi/')
-    app.add_api('specification.yml', arguments={
-                'title': 'Hello World Example'})
+    app.add_api('specification.yml', strict_validation=True)
 
     DEVELOPMENT = "development"
     flask_env = os.getenv("FLASK_ENV", DEVELOPMENT)
