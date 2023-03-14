@@ -194,7 +194,8 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
         experiment_suggestion_count = extras["experimentSuggestionCount"]
 
     next_exp = optimizer.ask(n_points=experiment_suggestion_count)
-    if len(next_exp) > 0 and not any(isinstance(x, list) for x in next_exp): next_exp = [next_exp]
+    if len(next_exp) > 0 and not any(isinstance(x, list) for x in next_exp):
+        next_exp = [next_exp]
     result_details["next"] = round_to_length_scales(next_exp, optimizer.space)
 
     if len(data) >= cfg["initialPoints"]:
@@ -209,7 +210,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
 
                 plot_objective(model, dimensions=dimensions,
                                usepartialdependence=False,
-                               show_confidence=True, 
+                               show_confidence=True,
                                pars=objective_pars)
                 add_plot(plots, f"objective_{idx}")
 
@@ -228,6 +229,12 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     add_version_info(result_details["extras"])
 
     # print(str(response))
+    org_models = response["result"]['models']
+    for model in org_models:
+        # Flatten expected minimum entries
+        model['expected_minimum'] = [[
+            item for sublist in [x if isinstance(
+                x, list) else [x] for x in model['expected_minimum']] for item in sublist]]
     return response
 
 

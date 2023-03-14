@@ -1,5 +1,6 @@
-connexion==2.7.0
+connexion==2.14.2
 connexion[swagger-ui]
+python-keycloak==2.13.2
 Flask==1.1.2
 Flask-Cors==3.0.10
 ProcessOptimizer[browniebee]==0.7.7
