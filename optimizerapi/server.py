@@ -13,7 +13,8 @@ if __name__ == '__main__':
     get_crypto()
     app = connexion.FlaskApp(
         __name__, port=9090, specification_dir='./openapi/')
-    app.add_api('specification.yml', strict_validation=True)
+    app.add_api('specification.yml', strict_validation=True,
+                validate_responses=True)
 
     DEVELOPMENT = "development"
     flask_env = os.getenv("FLASK_ENV", DEVELOPMENT)
