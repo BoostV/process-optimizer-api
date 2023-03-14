@@ -5,7 +5,7 @@ This module will verify tokens provided bt a Keycloak OpenID server
 import os
 from keycloak import KeycloakOpenID
 
-AUTH_API_KEY = os.getenv("AUTH_API_KEY", '')
+AUTH_API_KEY = os.getenv("AUTH_API_KEY", 'none')
 AUTH_SERVER = os.getenv("AUTH_SERVER", None)
 AUTH_CLIENT_ID = os.getenv("AUTH_CLIENT_ID", None)
 AUTH_CLIENT_SECRET = os.getenv("AUTH_CLIENT_SECRET", None)
