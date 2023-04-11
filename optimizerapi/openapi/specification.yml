@@ -239,7 +239,9 @@ components:
                     items:
                       type: array
                       items:
-                        type: number
+                        anyOf:
+                          - type: string
+                          - type: number
                   extras:
                     type: object
             extras:
