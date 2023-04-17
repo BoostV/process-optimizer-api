@@ -11,7 +11,7 @@ if "REDIS_URL" in os.environ:
 else:
     REDIS_URL = "redis://localhost:6379"
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with Connection(Redis.from_url(REDIS_URL)):
         queue = Queue()
         Worker(queue).work()
