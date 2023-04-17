@@ -8,13 +8,11 @@ from waitress import serve
 from flask_cors import CORS
 from .securepickle import get_crypto
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Initialize crypto
     get_crypto()
-    app = connexion.FlaskApp(
-        __name__, port=9090, specification_dir='./openapi/')
-    app.add_api('specification.yml', strict_validation=True,
-                validate_responses=True)
+    app = connexion.FlaskApp(__name__, port=9090, specification_dir="./openapi/")
+    app.add_api("specification.yml", strict_validation=True, validate_responses=True)
 
     DEVELOPMENT = "development"
     flask_env = os.getenv("FLASK_ENV", DEVELOPMENT)
@@ -25,8 +23,7 @@ if __name__ == '__main__':
     # It should be easy to get started developing locally which is the reason
     # why we allow for all origins in development mode.
     ALLOW_ALL_ORIGINS = ".*"
-    cors_origin = os.getenv(
-        "CORS_ORIGIN", ALLOW_ALL_ORIGINS if development else None)
+    cors_origin = os.getenv("CORS_ORIGIN", ALLOW_ALL_ORIGINS if development else None)
 
     # By default we do not want to enable CORS. That should be a conscious
     # descision from the host of the API server. This way we do not expose any
@@ -44,7 +41,7 @@ if __name__ == '__main__':
                 # our environment variable. The List would be cumbersome to
                 # parse and the simple string is not enough functionality for
                 # what we want to support.
-                origins=re.compile(cors_origin)
+                origins=re.compile(cors_origin),
             )
             print("CORS: " + cors_origin)
         except re.error:
@@ -55,4 +52,4 @@ if __name__ == '__main__':
     if development:
         app.run()
     else:
-        serve(app, listen='*:9090')
+        serve(app, listen="*:9090")

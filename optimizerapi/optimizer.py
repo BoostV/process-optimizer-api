@@ -32,7 +32,7 @@ else:
 
 queue = Queue(connection=Redis.from_url(REDIS_URL))
 
-plt.switch_backend('Agg')
+plt.switch_backend("Agg")
 
 
 def run(body) -> dict:
@@ -52,25 +52,23 @@ def run(body) -> dict:
 
 
 def do_run_work(body) -> dict:
-    """"Handle the run request
-    """
+    """ "Handle the run request"""
     try:
         return __handle_run(body)
     except IOError as err:
-        return ({'message': 'I/O error', 'error': str(err)}, 400)
+        return ({"message": "I/O error", "error": str(err)}, 400)
     except TypeError as err:
-        return ({'message': 'Type error', 'error': str(err)}, 400)
+        return ({"message": "Type error", "error": str(err)}, 400)
     except ValueError as err:
-        return ({'message': 'Validation error', 'error': str(err)}, 400)
+        return ({"message": "Validation error", "error": str(err)}, 400)
     except Exception as err:
         # Log unknown exceptions to support debugging
         traceback.print_exc()
-        return ({'message': 'Unknown error', 'error': str(err)}, 500)
+        return ({"message": "Unknown error", "error": str(err)}, 500)
 
 
 def __handle_run(body) -> dict:
-    """"Handle the run request
-    """
+    """ "Handle the run request"""
     # print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
@@ -78,16 +76,21 @@ def __handle_run(body) -> dict:
     if "extras" in body:
         extras = body["extras"]
     print("Received extras " + str(extras))
-    space = [(convert_number_type(x["from"], x["type"]),
-              convert_number_type(x["to"], x["type"]))
-             if (x["type"] == "discrete" or x["type"] == "continuous")
-             else tuple(x["categories"]) for x in cfg["space"]]
+    space = [
+        (
+            convert_number_type(x["from"], x["type"]),
+            convert_number_type(x["to"], x["type"]),
+        )
+        if (x["type"] == "discrete" or x["type"] == "continuous")
+        else tuple(x["categories"])
+        for x in cfg["space"]
+    ]
     dimensions = [x["name"] for x in cfg["space"]]
     hyperparams = {
-        'base_estimator': cfg["baseEstimator"],
-        'acq_func': cfg["acqFunc"],
-        'n_initial_points': cfg["initialPoints"],
-        'acq_func_kwargs': {'kappa': cfg["kappa"], 'xi': cfg["xi"]}
+        "base_estimator": cfg["baseEstimator"],
+        "acq_func": cfg["acqFunc"],
+        "n_initial_points": cfg["initialPoints"],
+        "acq_func_kwargs": {"kappa": cfg["kappa"], "xi": cfg["xi"]},
     }
 
     Xi = []
@@ -110,8 +113,7 @@ def __handle_run(body) -> dict:
     else:
         result = []
 
-    response = process_result(
-        result, optimizer, dimensions, cfg, extras, data, space)
+    response = process_result(result, optimizer, dimensions, cfg, extras, data, space)
 
     response["result"]["extras"]["parameters"] = {
         "dimensions": dimensions,
@@ -119,7 +121,7 @@ def __handle_run(body) -> dict:
         "hyperparams": hyperparams,
         "Xi": Xi,
         "Yi": Yi,
-        "extras": extras
+        "extras": extras,
     }
 
     # It is necesarry to convert response to a json string and then back to
@@ -128,8 +130,7 @@ def __handle_run(body) -> dict:
 
 
 def convert_number_type(value, num_type):
-    """Converts input value to either integer or float depending on the string supplied in numType
-    """
+    """Converts input value to either integer or float depending on the string supplied in numType"""
     if num_type == "discrete":
         return int(value)
     return float(value)
@@ -168,17 +169,9 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 model representation etc.}
         }
     """
-    result_details = {
-        "next": [],
-        "models": [],
-        "pickled": "",
-        "extras": {}
-    }
+    result_details = {"next": [], "models": [], "pickled": "", "extras": {}}
     plots = []
-    response = {
-        "plots": plots,
-        "result": result_details
-    }
+    response = {"plots": plots, "result": result_details}
     # GraphFormat should, at the moment, be either "png" or "none". Default (legacy)
     # behavior is "png", so the API returns png images. Any other input is interpreted
     # as "None" at the moment.
@@ -201,40 +194,49 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
-        result_details["models"] = [process_model(
-            model, optimizer) for model in result]
+        result_details["models"] = [process_model(model, optimizer) for model in result]
         if graph_format == "png":
             for idx, model in enumerate(result):
                 plot_convergence(model)
                 add_plot(plots, f"convergence_{idx}")
 
-                plot_objective(model, dimensions=dimensions,
-                               usepartialdependence=False,
-                               show_confidence=True,
-                               pars=objective_pars)
+                plot_objective(
+                    model,
+                    dimensions=dimensions,
+                    usepartialdependence=False,
+                    show_confidence=True,
+                    pars=objective_pars,
+                )
                 add_plot(plots, f"objective_{idx}")
 
             if optimizer.n_objectives == 1:
                 minimum = expected_minimum(result[0])
 
                 result_details["expected_minimum"] = [
-                    round_to_length_scales(minimum[0], optimizer.space), round(minimum[1], 2)]
+                    round_to_length_scales(minimum[0], optimizer.space),
+                    round(minimum[1], 2),
+                ]
             else:
                 plot_Pareto(optimizer)
                 add_plot(plots, "pareto")
 
-    result_details["pickled"] = pickleToString(
-        result, get_crypto())
+    result_details["pickled"] = pickleToString(result, get_crypto())
 
     add_version_info(result_details["extras"])
 
     # print(str(response))
-    org_models = response["result"]['models']
+    org_models = response["result"]["models"]
     for model in org_models:
         # Flatten expected minimum entries
-        model['expected_minimum'] = [[
-            item for sublist in [x if isinstance(
-                x, list) else [x] for x in model['expected_minimum']] for item in sublist]]
+        model["expected_minimum"] = [
+            [
+                item
+                for sublist in [
+                    x if isinstance(x, list) else [x] for x in model["expected_minimum"]
+                ]
+                for item in sublist
+            ]
+        ]
     return response
 
 
@@ -251,13 +253,12 @@ def process_model(model, optimizer):
     dict
         a dictionary containing the model specific results.
     """
-    result_details = {
-        "expected_minimum": [],
-        "extras": {}
-    }
+    result_details = {"expected_minimum": [], "extras": {}}
     minimum = expected_minimum(model)
     result_details["expected_minimum"] = [
-        round_to_length_scales(minimum[0], optimizer.space), round(minimum[1], 2)]
+        round_to_length_scales(minimum[0], optimizer.space),
+        round(minimum[1], 2),
+    ]
     return result_details
 
 
@@ -283,17 +284,14 @@ def add_plot(result, id="generic", close=True, debug=False):
         relative to current working directory. (default is False)
     """
     pic_io_bytes = io.BytesIO()
-    plt.savefig(pic_io_bytes,  format='png', bbox_inches='tight')
+    plt.savefig(pic_io_bytes, format="png", bbox_inches="tight")
     pic_io_bytes.seek(0)
     pic_hash = base64.b64encode(pic_io_bytes.read())
-    result.append({
-        "id": id,
-        "plot": str(pic_hash, "utf-8")
-    })
+    result.append({"id": id, "plot": str(pic_hash, "utf-8")})
 
     if debug:
-        with open('tmp/process_optimizer_' + id + '.png', 'wb') as imgfile:
-            plt.savefig(imgfile,  bbox_inches='tight', pad_inches=0)
+        with open("tmp/process_optimizer_" + id + ".png", "wb") as imgfile:
+            plt.savefig(imgfile, bbox_inches="tight", pad_inches=0)
 
     # print("IMAGE: " + str(pic_hash, "utf-8"))
     if close:
@@ -301,11 +299,11 @@ def add_plot(result, id="generic", close=True, debug=False):
 
 
 def round_to_length_scales(x, space):
-    """ Rounds a suggested experiment to to the length scales of each dimension
+    """Rounds a suggested experiment to to the length scales of each dimension
 
     For each dimension the length of the dimension is calculated and the
     length scale is defined as 1/1000th of the length.
-    The precision is the n in 10^n which is the closest to the 
+    The precision is the n in 10^n which is the closest to the
     length_scale (rounded) up .
     The suggested experiment value is then rounded to n decimals
 
@@ -326,10 +324,10 @@ def round_to_length_scales(x, space):
         if isinstance(dim, Real):
             length = dim.high - dim.low
             # Length scale of the dimension is 1/1000 of the dimension length
-            length_scale = length/1000
+            length_scale = length / 1000
             # The precision is found by taking the
             # negative log10 to the length scale ceiled
-            precision = int(numpy.ceil(- numpy.log10(length_scale)))
+            precision = int(numpy.ceil(-numpy.log10(length_scale)))
 
             # If multiple experiments round dimension values for all experiments
             # else round dimension value
@@ -361,9 +359,12 @@ def add_version_info(extras):
             extras["apiVersion"] = version_file.readline().rstrip()
     else:
         try:
-            extras["apiVersion"] = subprocess.check_output(
-                ["git", "describe", "--always"]).strip().decode()
+            extras["apiVersion"] = (
+                subprocess.check_output(["git", "describe", "--always"])
+                .strip()
+                .decode()
+            )
         except IOError:
-            extras["apiVersion"] = 'Unknown development version'
+            extras["apiVersion"] = "Unknown development version"
 
     extras["timeOfExecution"] = strftime("%Y-%m-%d %H:%M:%S")

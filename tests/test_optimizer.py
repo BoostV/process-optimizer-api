@@ -9,34 +9,31 @@ from optimizerapi import optimizer
 #   'space': [{'type': 'discrete', 'name': 'Alkohol', 'from': 0, 'to': 10}, {'type': 'continuous', 'name': 'Vand', 'from': 0, 'to': 10}, {'type': 'category', 'name': 'Farve', 'categories': ['Rød', 'Hvid']}]}}                                                                                                                                                  Received extras {'experimentSuggestionCount': 2}
 
 sampleData = [
-    {'xi': [651, 56, 722, 'Ræv'], 'yi': [1]},
-    {'xi': [651, 42, 722, 'Ræv'], 'yi': [0.2]}
+    {"xi": [651, 56, 722, "Ræv"], "yi": [1]},
+    {"xi": [651, 42, 722, "Ræv"], "yi": [0.2]},
 ]
 
 sampleMultiObjectiveData = [
-    {'xi': [651, 56, 722, 'Ræv'], 'yi': [1, 2]},
-    {'xi': [651, 42, 722, 'Ræv'], 'yi': [0.2, 0.5]},
-    {'xi': [652, 41, 722, 'Ræv'], 'yi': [0.1, 0.5]},
+    {"xi": [651, 56, 722, "Ræv"], "yi": [1, 2]},
+    {"xi": [651, 42, 722, "Ræv"], "yi": [0.2, 0.5]},
+    {"xi": [652, 41, 722, "Ræv"], "yi": [0.1, 0.5]},
 ]
 
 sampleConfig = {
-    'baseEstimator': 'GP',
-    'acqFunc':
-        'gp_hedge',
-        'initialPoints': 2,
-        'kappa': 1.96,
-        'xi': 0.012,
-        'space': [
-            {'type': 'discrete', 'name': 'Sukker', 'from': 0, 'to': 1000},
-            {'type': 'continuous', 'name': 'Peber', 'from': 0, 'to': 1000},
-            {'type': 'continuous', 'name': 'Hvedemel', 'from': 0, 'to': 1000},
-            {'type': 'category', 'name': 'Kunde', 'categories': ['Mus', 'Ræv']}
-        ]
+    "baseEstimator": "GP",
+    "acqFunc": "gp_hedge",
+    "initialPoints": 2,
+    "kappa": 1.96,
+    "xi": 0.012,
+    "space": [
+        {"type": "discrete", "name": "Sukker", "from": 0, "to": 1000},
+        {"type": "continuous", "name": "Peber", "from": 0, "to": 1000},
+        {"type": "continuous", "name": "Hvedemel", "from": 0, "to": 1000},
+        {"type": "category", "name": "Kunde", "categories": ["Mus", "Ræv"]},
+    ],
 }
 
-samplePayload = {
-    'data': sampleData,
-    'optimizerConfig': sampleConfig}
+samplePayload = {"data": sampleData, "optimizerConfig": sampleConfig}
 
 
 def validateResult(result):
@@ -53,41 +50,35 @@ def validateResult(result):
 
 
 def test_can_be_run_without_data():
-    result = optimizer.run(body={
-        "data": [],
-        "optimizerConfig": sampleConfig
-    })
+    result = optimizer.run(body={"data": [], "optimizerConfig": sampleConfig})
     validateResult(result)
     assert len(result["plots"]) == 0
 
 
 def test_generates_plots_when_run_with_more_than_initialPoints_samples():
-    result = optimizer.run(body={
-        "data": sampleData,
-        "optimizerConfig": sampleConfig
-    })
+    result = optimizer.run(body={"data": sampleData, "optimizerConfig": sampleConfig})
     validateResult(result)
     assert len(result["result"]["models"]) > 0
     assert len(result["plots"]) == 2
 
 
 def test_specifying_png_plots():
-    result = optimizer.run(body={
-        "data": sampleData,
-        "optimizerConfig": sampleConfig,
-        "extras": {"graphFormat": "png"}
-    })
+    result = optimizer.run(
+        body={
+            "data": sampleData,
+            "optimizerConfig": sampleConfig,
+            "extras": {"graphFormat": "png"},
+        }
+    )
     validateResult(result)
     assert len(result["result"]["models"]) > 0
     assert len(result["plots"]) == 2
 
 
 def test_specifying_empty_extras_preserve_legacy_plotting():
-    result = optimizer.run(body={
-        "data": sampleData,
-        "optimizerConfig": sampleConfig,
-        "extras": {}
-    })
+    result = optimizer.run(
+        body={"data": sampleData, "optimizerConfig": sampleConfig, "extras": {}}
+    )
     validateResult(result)
     assert len(result["result"]["models"]) > 0
     assert len(result["plots"]) == 2
@@ -95,21 +86,22 @@ def test_specifying_empty_extras_preserve_legacy_plotting():
 
 def test_deselecting_plots():
     # If graphFormat is none, no plots should be returned. This should be faster.
-    result = optimizer.run(body={
-        "data": sampleData,
-        "optimizerConfig": sampleConfig,
-        "extras": {"graphFormat": "none"}
-    })
+    result = optimizer.run(
+        body={
+            "data": sampleData,
+            "optimizerConfig": sampleConfig,
+            "extras": {"graphFormat": "none"},
+        }
+    )
     validateResult(result)
     assert len(result["result"]["models"]) > 0
     assert len(result["plots"]) == 0
 
 
 def test_can_accept_multi_objective_data():
-    result = optimizer.run(body={
-        "data": sampleMultiObjectiveData,
-        "optimizerConfig": sampleConfig
-    })
+    result = optimizer.run(
+        body={"data": sampleMultiObjectiveData, "optimizerConfig": sampleConfig}
+    )
     validateResult(result)
     assert len(result["result"]["models"]) > 1
     assert len(result["plots"]) == 5
