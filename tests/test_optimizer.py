@@ -105,3 +105,29 @@ def test_can_accept_multi_objective_data():
     validateResult(result)
     assert len(result["result"]["models"]) > 1
     assert len(result["plots"]) == 5
+
+
+def test_deselecting_pickled_model():
+    # If includeModel is false, pickled data should not be included in result
+    result = optimizer.run(
+        body={
+            "data": sampleData,
+            "optimizerConfig": sampleConfig,
+            "extras": {"includeModel": "false"},
+        }
+    )
+    assert "pickled" in result["result"]
+    assert len(result["result"]["pickled"]) == 0
+
+
+def test_selecting_pickled_model():
+    # If includeModel is true, pickled data should be included in result
+    result = optimizer.run(
+        body={
+            "data": sampleData,
+            "optimizerConfig": sampleConfig,
+            "extras": {"includeModel": "true"},
+        }
+    )
+    assert "pickled" in result["result"]
+    assert len(result["result"]["pickled"]) > 0
