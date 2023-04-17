@@ -179,6 +179,8 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
 
     objective_pars = extras.get("objectivePars", "result")
 
+    pickle_model = json.loads(extras.get("includeModel", "true").lower())
+
     # In the following section details that should be reported to
     # clients should go into the "resultDetails" dictionary and plots
     # go into the "plots" list (this is handled by calling the "addPlot" function)
@@ -220,7 +222,8 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 plot_Pareto(optimizer)
                 add_plot(plots, "pareto")
 
-    result_details["pickled"] = pickleToString(result, get_crypto())
+    if pickle_model:
+        result_details["pickled"] = pickleToString(result, get_crypto())
 
     add_version_info(result_details["extras"])
 
