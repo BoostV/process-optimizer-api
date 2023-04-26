@@ -15,6 +15,8 @@ import subprocess
 import traceback
 import json_tricks
 from rq import Queue
+from rq.job import Job
+from rq.exceptions import NoSuchJobError
 from rq.command import send_stop_job_command
 from redis import Redis
 from ProcessOptimizer import Optimizer, expected_minimum
@@ -24,6 +26,7 @@ import matplotlib.pyplot as plt
 import numpy
 import connexion
 from .securepickle import pickleToString, get_crypto
+import hashlib
 
 numpy.random.seed(42)
 if "REDIS_URL" in os.environ:
@@ -56,8 +59,15 @@ def run(body) -> dict:
             return False
     print(disconnect_check())
     if "USE_WORKER" in os.environ and os.environ["USE_WORKER"]:
-        print('Starting job')
-        job = queue.enqueue(do_run_work, body)
+        hash = hashlib.new('sha256')
+        hash.update(json.dumps(body).encode())
+        job_id = hash.hexdigest()
+        try:
+            job = Job.fetch(job_id, connection=redis)
+            print('Found existing job')
+        except NoSuchJobError:
+            print('Creating new job')
+            job = queue.enqueue(do_run_work, body, job_id=job_id)
         while job.return_value is None:
             if disconnect_check():
                 try:
