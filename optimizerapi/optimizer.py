@@ -13,6 +13,7 @@ import io
 import json
 import subprocess
 import traceback
+import hashlib
 import json_tricks
 from rq import Queue
 from rq.job import Job
@@ -26,7 +27,6 @@ import matplotlib.pyplot as plt
 import numpy
 import connexion
 from .securepickle import pickleToString, get_crypto
-import hashlib
 
 numpy.random.seed(42)
 if "REDIS_URL" in os.environ:
