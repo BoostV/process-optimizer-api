@@ -36,6 +36,10 @@ else:
 print('Connecting to' + REDIS_URL)
 redis = Redis.from_url(REDIS_URL)
 queue = Queue(connection=redis)
+if "REDIS_TTL" in os.environ:
+    TTL = int(os.environ["REDIS_TTL"])
+else:
+    TTL = 500
 
 plt.switch_backend("Agg")
 
@@ -67,7 +71,8 @@ def run(body) -> dict:
             print('Found existing job')
         except NoSuchJobError:
             print('Creating new job')
-            job = queue.enqueue(do_run_work, body, job_id=job_id)
+            job = queue.enqueue(do_run_work, body,
+                                job_id=job_id, result_ttl=TTL)
         while job.return_value is None:
             if disconnect_check():
                 try:
