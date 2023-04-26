@@ -45,9 +45,13 @@ def run(body) -> dict:
     dict
         a JSON encodable dictionary representation of the result.
     """
-    if 'waitress.client_disconnected' in connexion.request.environ:
-        disconnect_check = connexion.request.environ['waitress.client_disconnected']
-    else:
+    try:
+        if 'waitress.client_disconnected' in connexion.request.environ:
+            disconnect_check = connexion.request.environ['waitress.client_disconnected']
+        else:
+            def disconnect_check():
+                return False
+    except RuntimeError:
         def disconnect_check():
             return False
     print(disconnect_check())

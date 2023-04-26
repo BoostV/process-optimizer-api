@@ -12,7 +12,7 @@ if __name__ == "__main__":
     # Initialize crypto
     get_crypto()
     app = connexion.FlaskApp(
-        __name__, port=9090, specification_dir="./openapi/")
+        __name__, specification_dir="./openapi/")
     app.add_api("specification.yml", strict_validation=True,
                 validate_responses=True)
 
@@ -53,6 +53,6 @@ if __name__ == "__main__":
         print("CORS: disabled")
 
     if development:
-        app.run()
+        app.run(port=9090)
     else:
         serve(app, listen="*:9090", channel_request_lookahead=1)
