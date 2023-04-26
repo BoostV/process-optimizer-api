@@ -15,13 +15,14 @@ import subprocess
 import traceback
 import json_tricks
 from rq import Queue
+from rq.command import send_stop_job_command
 from redis import Redis
 from ProcessOptimizer import Optimizer, expected_minimum
 from ProcessOptimizer.plots import plot_objective, plot_convergence, plot_Pareto
 from ProcessOptimizer.space import Real
 import matplotlib.pyplot as plt
 import numpy
-
+import connexion
 from .securepickle import pickleToString, get_crypto
 
 numpy.random.seed(42)
@@ -29,8 +30,9 @@ if "REDIS_URL" in os.environ:
     REDIS_URL = os.environ["REDIS_URL"]
 else:
     REDIS_URL = "redis://localhost:6379"
-
-queue = Queue(connection=Redis.from_url(REDIS_URL))
+print('Connecting to' + REDIS_URL)
+redis = Redis.from_url(REDIS_URL)
+queue = Queue(connection=redis)
 
 plt.switch_backend("Agg")
 
@@ -43,9 +45,25 @@ def run(body) -> dict:
     dict
         a JSON encodable dictionary representation of the result.
     """
+    if 'waitress.client_disconnected' in connexion.request.environ:
+        disconnect_check = connexion.request.environ['waitress.client_disconnected']
+    else:
+        def disconnect_check():
+            return False
+    print(disconnect_check())
     if "USE_WORKER" in os.environ and os.environ["USE_WORKER"]:
+        print('Starting job')
         job = queue.enqueue(do_run_work, body)
         while job.return_value is None:
+            if disconnect_check():
+                try:
+                    print(f'Client disconnected, cancelling job {job.id}')
+                    job.cancel()
+                    send_stop_job_command(redis, job.id)
+                    job.delete()
+                except Exception:
+                    pass
+                return {}
             time.sleep(0.2)
         return job.return_value
     return do_run_work(body)
@@ -113,7 +131,8 @@ def __handle_run(body) -> dict:
     else:
         result = []
 
-    response = process_result(result, optimizer, dimensions, cfg, extras, data, space)
+    response = process_result(
+        result, optimizer, dimensions, cfg, extras, data, space)
 
     response["result"]["extras"]["parameters"] = {
         "dimensions": dimensions,
@@ -196,7 +215,8 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
-        result_details["models"] = [process_model(model, optimizer) for model in result]
+        result_details["models"] = [process_model(
+            model, optimizer) for model in result]
         if graph_format == "png":
             for idx, model in enumerate(result):
                 plot_convergence(model)
