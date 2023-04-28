@@ -1,6 +1,18 @@
 # Changelog
 
-## [v3.1.0](https://github.com/BoostV/process-optimizer-api/tree/v3.1.0)
+## [v3.2.0](https://github.com/BoostV/process-optimizer-api/tree/v3.2.0)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.1.0...v3.2.0)
+
+**Implemented enhancements:**
+
+- Support sum constraint [\#66](https://github.com/BoostV/process-optimizer-api/issues/66)
+
+**Merged pull requests:**
+
+- 66 support sum constraint [\#67](https://github.com/BoostV/process-optimizer-api/pull/67) ([langdal](https://github.com/langdal))
+
+## [v3.1.0](https://github.com/BoostV/process-optimizer-api/tree/v3.1.0) (2023-04-28)
 
 [Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.0.3...v3.1.0)
 
