@@ -23,6 +23,7 @@ from redis import Redis
 from ProcessOptimizer import Optimizer, expected_minimum
 from ProcessOptimizer.plots import plot_objective, plot_convergence, plot_Pareto
 from ProcessOptimizer.space import Real
+from ProcessOptimizer.space.constraints import SumEquals
 import matplotlib.pyplot as plt
 import numpy
 import connexion
@@ -33,7 +34,7 @@ if "REDIS_URL" in os.environ:
     REDIS_URL = os.environ["REDIS_URL"]
 else:
     REDIS_URL = "redis://localhost:6379"
-print('Connecting to' + REDIS_URL)
+print("Connecting to" + REDIS_URL)
 redis = Redis.from_url(REDIS_URL)
 queue = Queue(connection=redis)
 if "REDIS_TTL" in os.environ:
@@ -53,30 +54,32 @@ def run(body) -> dict:
         a JSON encodable dictionary representation of the result.
     """
     try:
-        if 'waitress.client_disconnected' in connexion.request.environ:
-            disconnect_check = connexion.request.environ['waitress.client_disconnected']
+        if "waitress.client_disconnected" in connexion.request.environ:
+            disconnect_check = connexion.request.environ["waitress.client_disconnected"]
         else:
+
             def disconnect_check():
                 return False
+
     except RuntimeError:
+
         def disconnect_check():
             return False
-    print(disconnect_check())
+
     if "USE_WORKER" in os.environ and os.environ["USE_WORKER"]:
-        hash = hashlib.new('sha256')
-        hash.update(json.dumps(body).encode())
-        job_id = hash.hexdigest()
+        body_hash = hashlib.new("sha256")
+        body_hash.update(json.dumps(body).encode())
+        job_id = body_hash.hexdigest()
         try:
             job = Job.fetch(job_id, connection=redis)
-            print('Found existing job')
+            print("Found existing job")
         except NoSuchJobError:
-            print('Creating new job')
-            job = queue.enqueue(do_run_work, body,
-                                job_id=job_id, result_ttl=TTL)
+            print("Creating new job")
+            job = queue.enqueue(do_run_work, body, job_id=job_id, result_ttl=TTL)
         while job.return_value is None:
             if disconnect_check():
                 try:
-                    print(f'Client disconnected, cancelling job {job.id}')
+                    print(f"Client disconnected, cancelling job {job.id}")
                     job.cancel()
                     send_stop_job_command(redis, job.id)
                     job.delete()
@@ -109,9 +112,8 @@ def __handle_run(body) -> dict:
     # print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
-    extras = {}
-    if "extras" in body:
-        extras = body["extras"]
+    constraints = cfg["constraints"] if "constraints" in cfg else []
+    extras = body["extras"] if "extras" in body else {}
     print("Received extras " + str(extras))
     space = [
         (
@@ -139,7 +141,16 @@ def __handle_run(body) -> dict:
     if len(Yi) > 0:
         n_objectives = len(Yi[0])
 
-    optimizer = Optimizer(space, **hyperparams, n_objectives=n_objectives)
+    if constraints is not None and len(constraints) > 0:
+        optimizer = Optimizer(
+            space, **hyperparams, lhs=False, n_objectives=n_objectives
+        )
+        parsed_constraints = [
+            SumEquals(dimensions=x["dimensions"], value=x["value"]) for x in constraints
+        ]
+        optimizer.set_constraints(parsed_constraints)
+    else:
+        optimizer = Optimizer(space, **hyperparams, n_objectives=n_objectives)
 
     if data:
         if n_objectives == 1:
@@ -150,8 +161,7 @@ def __handle_run(body) -> dict:
     else:
         result = []
 
-    response = process_result(
-        result, optimizer, dimensions, cfg, extras, data, space)
+    response = process_result(result, optimizer, dimensions, cfg, extras, data, space)
 
     response["result"]["extras"]["parameters"] = {
         "dimensions": dimensions,
@@ -234,8 +244,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
-        result_details["models"] = [process_model(
-            model, optimizer) for model in result]
+        result_details["models"] = [process_model(model, optimizer) for model in result]
         if graph_format == "png":
             for idx, model in enumerate(result):
                 plot_convergence(model)

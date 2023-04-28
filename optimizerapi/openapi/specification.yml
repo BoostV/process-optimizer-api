@@ -94,13 +94,13 @@ paths:
                         "space":
                           [
                             {
-                              "type": "discrete",
+                              "type": "continuous",
                               "name": "Red",
                               "from": 0,
                               "to": 255,
                             },
                             {
-                              "type": "discrete",
+                              "type": "continuous",
                               "name": "Green",
                               "from": 0,
                               "to": 255,
@@ -110,6 +110,14 @@ paths:
                               "name": "Blue",
                               "from": 0,
                               "to": 255,
+                            },
+                          ],
+                        "constraints":
+                          [
+                            {
+                              "type": "sum",
+                              "dimensions": [0, 1],
+                              "value": 50,
                             },
                           ],
                       },
@@ -178,30 +186,57 @@ components:
             xi:
               type: number
             space:
-              type: array
-              items:
-                type: object
-                properties:
-                  type:
-                    type: string
-                    description: Type of the dimension. Can be category, discrete or continuous
-                  name:
-                    type: string
-                  from:
-                    type: number
-                  to:
-                    type: number
-                  categories:
-                    type: array
-                    items:
-                      type: string
-                required:
-                  - type
-                  - name
-
+              $ref: "#/components/schemas/space"
+            constraints:
+              $ref: "#/components/schemas/constraints"
       required:
         - data
         - optimizerConfig
+    constraints:
+      type: array
+      items:
+        $ref: "#/components/schemas/constraint"
+    constraint:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - sum
+        dimensions:
+          type: array
+          items:
+            type: number
+        value:
+          type: number
+      required:
+        - dimensions
+        - value
+    space:
+      type: array
+      items:
+        type: object
+        properties:
+          type:
+            type: string
+            description: Type of the dimension. Can be category, discrete or continuous
+            enum:
+              - category
+              - discrete
+              - continuous
+          name:
+            type: string
+          from:
+            type: number
+          to:
+            type: number
+          categories:
+            type: array
+            items:
+              type: string
+        required:
+          - type
+          - name
     result:
       title: Result of running optimizer on experiment
       type: object
