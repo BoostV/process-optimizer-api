@@ -1,6 +1,43 @@
 # Changelog
 
-## [v3.0.0](https://github.com/BoostV/process-optimizer-api/tree/v3.0.0)
+## [v3.1.0](https://github.com/BoostV/process-optimizer-api/tree/v3.1.0)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.0.3...v3.1.0)
+
+**Implemented enhancements:**
+
+- Remove jobs from queue and terminate running job on client disconnect [\#64](https://github.com/BoostV/process-optimizer-api/issues/64)
+
+**Merged pull requests:**
+
+- Cancel job when client disconnects [\#65](https://github.com/BoostV/process-optimizer-api/pull/65) ([langdal](https://github.com/langdal))
+
+## [v3.0.3](https://github.com/BoostV/process-optimizer-api/tree/v3.0.3) (2023-04-17)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.0.2...v3.0.3)
+
+## [v3.0.2](https://github.com/BoostV/process-optimizer-api/tree/v3.0.2) (2023-04-17)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.0.1...v3.0.2)
+
+**Fixed bugs:**
+
+- Regression - expected minimum schema does not allow for categorical values [\#60](https://github.com/BoostV/process-optimizer-api/issues/60)
+
+**Merged pull requests:**
+
+- Add option to exclude pickled result [\#63](https://github.com/BoostV/process-optimizer-api/pull/63) ([langdal](https://github.com/langdal))
+- Update dependencies [\#62](https://github.com/BoostV/process-optimizer-api/pull/62) ([langdal](https://github.com/langdal))
+
+## [v3.0.1](https://github.com/BoostV/process-optimizer-api/tree/v3.0.1) (2023-04-11)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.0.0...v3.0.1)
+
+**Merged pull requests:**
+
+- Allow strings in expected minimum [\#61](https://github.com/BoostV/process-optimizer-api/pull/61) ([langdal](https://github.com/langdal))
+
+## [v3.0.0](https://github.com/BoostV/process-optimizer-api/tree/v3.0.0) (2023-03-14)
 
 [Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v2.3.0...v3.0.0)
 
