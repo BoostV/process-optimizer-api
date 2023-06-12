@@ -260,11 +260,10 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 add_plot(plots, f"objective_{idx}")
 
             if optimizer.n_objectives == 1:
-                minimum = expected_minimum(result[0])
-
+                minimum = expected_minimum(result[0], return_std=True)
                 result_details["expected_minimum"] = [
                     round_to_length_scales(minimum[0], optimizer.space),
-                    round(minimum[1], 2),
+                    minimum[1],
                 ]
             else:
                 plot_Pareto(optimizer)
