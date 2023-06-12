@@ -1,6 +1,7 @@
 """
 Test main optimizer module
 """
+import collections.abc
 from optimizerapi import optimizer
 
 #  {'data': [{'xi': [651, 56, 722, 'Ræv'], 'yi': 1}, {'xi': [651, 42, 722, 'Ræv'], 'yi': 0.2}], 'optimizerConfig': {'baseEstimator': 'GP', 'acqFunc': 'gp_hedge', 'initialPoints': 5, 'kappa': 1.96, 'xi': 0.012, 'space': [{'type': 'numeric', 'name': 'Sukker', 'from': 0, 'to': 1000}, {'type': 'numeric', 'name': 'Peber', 'from': 0, 'to': 1000}, {'type': 'numeric', 'name': 'Hvedemel', 'from': 0, 'to': 1000}, {'type': 'category', 'name': 'Kunde', 'categories': ['Mus', 'Ræv']}]}}
@@ -131,3 +132,10 @@ def test_selecting_pickled_model():
     )
     assert "pickled" in result["result"]
     assert len(result["result"]["pickled"]) > 0
+
+
+def test_expected_minimum_contains_std_deviation():
+    result = optimizer.run(body={"data": sampleData, "optimizerConfig": sampleConfig})
+    assert "expected_minimum" in result["result"]
+    expected_minimum = result["result"]["expected_minimum"]
+    assert isinstance(expected_minimum[1], collections.abc.Sequence)
