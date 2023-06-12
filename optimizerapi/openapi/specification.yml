@@ -254,6 +254,14 @@ components:
         result:
           type: object
           properties:
+            expected_minimum:
+              type: array
+              items:
+                type: array
+                items:
+                  anyOf:
+                    - type: string
+                    - type: number
             pickled:
               type: string
             next:
