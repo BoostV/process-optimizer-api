@@ -228,7 +228,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     # as "None" at the moment.
     graph_format = extras.get("graphFormat", "png")
     max_quality = int(extras.get("maxQuality", "5"))
-    graphs_to_return = extras.get("graphs", ['objective', 'convergence'])
+    graphs_to_return = extras.get("graphs", ['objective', 'convergence', 'pareto'])
 
     objective_pars = extras.get("objectivePars", "result")
 
@@ -280,7 +280,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                     round_to_length_scales(minimum[0], optimizer.space),
                     minimum[1],
                 ]
-            else:
+            elif 'pareto' in graphs_to_return:
                 plot_Pareto(optimizer)
                 add_plot(plots, "pareto")
 

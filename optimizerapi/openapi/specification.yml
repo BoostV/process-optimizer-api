@@ -159,6 +159,7 @@ components:
               type: number
             graphs:
               type: array
+              default: ["objective", "convergence", "pareto"]
               items:
                 type: string
           additionalProperties:
