@@ -15,7 +15,6 @@ import subprocess
 import traceback
 import hashlib
 import json_tricks
-import matplotlib as mpl
 from rq import Queue
 from rq.job import Job
 from rq.exceptions import NoSuchJobError
