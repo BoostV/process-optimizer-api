@@ -155,6 +155,12 @@ components:
               type: string
             experimentSuggestionCount:
               type: number
+            maxQuality:
+              type: number
+            graphs:
+              type: array
+              items:
+                type: string
           additionalProperties:
             type: string
         data:

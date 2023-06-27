@@ -15,6 +15,7 @@ import subprocess
 import traceback
 import hashlib
 import json_tricks
+import matplotlib as mpl
 from rq import Queue
 from rq.job import Job
 from rq.exceptions import NoSuchJobError
@@ -27,6 +28,8 @@ from ProcessOptimizer.space.constraints import SumEquals
 import matplotlib.pyplot as plt
 import numpy
 import connexion
+
+from optimizerapi.plot_patch import plot_brownie_bee
 from .securepickle import pickleToString, get_crypto
 
 numpy.random.seed(42)
@@ -224,6 +227,8 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     # behavior is "png", so the API returns png images. Any other input is interpreted
     # as "None" at the moment.
     graph_format = extras.get("graphFormat", "png")
+    max_quality = int(extras.get("maxQuality", "5"))
+    graphs_to_return = extras.get("graphs", ['objective', 'convergence'])
 
     objective_pars = extras.get("objectivePars", "result")
 
@@ -247,17 +252,27 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
         result_details["models"] = [process_model(model, optimizer) for model in result]
         if graph_format == "png":
             for idx, model in enumerate(result):
-                plot_convergence(model)
-                add_plot(plots, f"convergence_{idx}")
+                if 'single' in graphs_to_return:
+                    bb_plots = plot_brownie_bee(model, max_quality=max_quality)
+                    for i, plot in enumerate(bb_plots):
+                        pic_io_bytes = io.BytesIO()
+                        plot.savefig(pic_io_bytes, format="png")
+                        pic_io_bytes.seek(0)
+                        pic_hash = base64.b64encode(pic_io_bytes.read())
+                        plots.append({"id": f"single_{idx}_{i}", "plot": str(pic_hash, "utf-8")})
+                if 'convergence' in graphs_to_return:
+                    plot_convergence(model)
+                    add_plot(plots, f"convergence_{idx}")
 
-                plot_objective(
-                    model,
-                    dimensions=dimensions,
-                    usepartialdependence=False,
-                    show_confidence=True,
-                    pars=objective_pars,
-                )
-                add_plot(plots, f"objective_{idx}")
+                if 'objective' in graphs_to_return:
+                    plot_objective(
+                        model,
+                        dimensions=dimensions,
+                        usepartialdependence=False,
+                        show_confidence=True,
+                        pars=objective_pars,
+                    )
+                    add_plot(plots, f"objective_{idx}")
 
             if optimizer.n_objectives == 1:
                 minimum = expected_minimum(result[0], return_std=True)
