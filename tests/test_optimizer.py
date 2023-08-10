@@ -1,6 +1,7 @@
 """
 Test main optimizer module
 """
+import copy
 import collections.abc
 from optimizerapi import optimizer
 
@@ -61,6 +62,18 @@ def test_generates_plots_when_run_with_more_than_initialPoints_samples():
     validateResult(result)
     assert len(result["result"]["models"]) > 0
     assert len(result["plots"]) == 2
+
+
+def test_generates_convergence_plots():
+    convergence_config = copy.deepcopy(sampleConfig)
+    convergence_config["extras"] = {"graphs": ["convergence"]}
+    result = optimizer.run(
+        body={"data": sampleData, "optimizerConfig": convergence_config}
+    )
+    validateResult(result)
+    assert len(result["result"]["models"]) > 0
+    assert len(result["plots"]) == 2
+    assert result["plots"][0]["id"] == "convergence_0"
 
 
 def test_specifying_png_plots():
