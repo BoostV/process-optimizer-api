@@ -111,12 +111,13 @@ def do_run_work(body) -> dict:
 
 def __handle_run(body) -> dict:
     """ "Handle the run request"""
-    # print("Receive: " + str(body))
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
     constraints = cfg["constraints"] if "constraints" in cfg else []
     extras = body["extras"] if "extras" in body else {}
-    print("Received extras " + str(extras))
+    use_actual_measurement_histogram = json.loads(
+        extras.get("useActualMeasurementHistogram", "true").lower()
+    )
     space = [
         (
             convert_number_type(x["from"], x["type"]),
@@ -159,6 +160,9 @@ def __handle_run(body) -> dict:
             Yi = [elm[0] for elm in Yi]
         result = optimizer.tell(Xi, Yi)
         if n_objectives == 1:
+            if use_actual_measurement_histogram:
+                optimizer.add_modelled_noise()
+                result = optimizer.get_result()
             result = [result]
     else:
         result = []
@@ -227,7 +231,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     # as "None" at the moment.
     graph_format = extras.get("graphFormat", "png")
     max_quality = int(extras.get("maxQuality", "5"))
-    graphs_to_return = extras.get("graphs", ['objective', 'convergence', 'pareto'])
+    graphs_to_return = extras.get("graphs", ["objective", "convergence", "pareto"])
 
     objective_pars = extras.get("objectivePars", "result")
 
@@ -251,19 +255,21 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
         result_details["models"] = [process_model(model, optimizer) for model in result]
         if graph_format == "png":
             for idx, model in enumerate(result):
-                if 'single' in graphs_to_return:
+                if "single" in graphs_to_return:
                     bb_plots = plot_brownie_bee(model, max_quality=max_quality)
                     for i, plot in enumerate(bb_plots):
                         pic_io_bytes = io.BytesIO()
                         plot.savefig(pic_io_bytes, format="png")
                         pic_io_bytes.seek(0)
                         pic_hash = base64.b64encode(pic_io_bytes.read())
-                        plots.append({"id": f"single_{idx}_{i}", "plot": str(pic_hash, "utf-8")})
-                if 'convergence' in graphs_to_return:
+                        plots.append(
+                            {"id": f"single_{idx}_{i}", "plot": str(pic_hash, "utf-8")}
+                        )
+                if "convergence" in graphs_to_return:
                     plot_convergence(model)
                     add_plot(plots, f"convergence_{idx}")
 
-                if 'objective' in graphs_to_return:
+                if "objective" in graphs_to_return:
                     plot_objective(
                         model,
                         dimensions=dimensions,
@@ -279,7 +285,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                     round_to_length_scales(minimum[0], optimizer.space),
                     minimum[1],
                 ]
-            elif 'pareto' in graphs_to_return:
+            elif "pareto" in graphs_to_return:
                 plot_Pareto(optimizer)
                 add_plot(plots, "pareto")
 
