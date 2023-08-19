@@ -159,7 +159,7 @@ def __handle_run(body) -> dict:
         if n_objectives == 1:
             Yi = [elm[0] for elm in Yi]
         result = optimizer.tell(Xi, Yi)
-        if n_objectives == 1:
+        if n_objectives == 1 and len(result.models) > 0:
             if use_actual_measurement_histogram:
                 optimizer.add_modelled_noise()
                 result = optimizer.get_result()
