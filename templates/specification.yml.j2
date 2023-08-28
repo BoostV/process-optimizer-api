@@ -9,9 +9,11 @@ servers:
 paths:
   /optimizer:
     post:
+      {% if PO_AUTH_URL %}
       security:
         - oauth2: []
         - apikey: []
+      {% endif %}
       description: Run optimizer with the specified parameters
       operationId: optimizerapi.optimizer.run
       responses:
@@ -124,6 +126,7 @@ paths:
                   }
 
 components:
+  {% if PO_AUTH_URL %}
   securitySchemes:
     apikey:
       x-apikeyInfoFunc: optimizerapi.auth.apikey_handler
@@ -135,8 +138,10 @@ components:
       x-tokenInfoFunc: optimizerapi.auth.token_info
       flows:
         implicit:
-          authorizationUrl: https://keycloak.browniebee.projects.alexandra.dk/realms/brownie-bee-dev/protocol/openid-connect/auth
+          # authorizationUrl: https://keycloak.browniebee.projects.alexandra.dk/realms/brownie-bee-dev/protocol/openid-connect/auth
+          authorizationUrl: {{ PO_AUTH_URL }}
           scopes: {}
+  {% endif %}
   schemas:
     experiment:
       title: An experiment definition
