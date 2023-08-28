@@ -31,10 +31,10 @@ services:
     volumes:
       - redis-data:/data
   ui:
-    image: ghcr.io/boostv/process-optimizer-frontend/server:main
+    image: ghcr.io/boostv/process-optimizer-frontend:1.6.3
     restart: unless-stopped
     ports:
-      - 3000:3000
+      - 3000:80
     environment:
       - API_SERVER=http://api:9090/v1.0
 
