@@ -21,7 +21,7 @@ services:
     build:
       context: .
     deploy:
-      replicas: 1
+      replicas: 10
     command: python -m optimizerapi.worker
     environment:
       - REDIS_URL=redis://redis:6379
