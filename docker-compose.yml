@@ -11,6 +11,9 @@ services:
     environment:
       - USE_WORKER=true
       - REDIS_URL=redis://redis:6379
+      - CORS_ORIGIN=http://localhost:3000
+      ## uncomment to enable authentication in the API specification
+      #- PO_AUTH_URL=https://keycloak.browniebee.projects.alexandra.dk/realms/brownie-bee-dev/protocol/openid-connect/auth
   worker:
     restart: unless-stopped
     depends_on: 
