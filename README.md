@@ -35,6 +35,10 @@ or use pytest-watch for continuously running tests
 
 Run server once and extract a fresh encryption key from the logs.
 
+    ## optional add auth url
+    # export PO_AUTH_URL="http://authurl"
+
+    python scripts/configure_api.py
     python -m optimizerapi.server
 
 or using docker
@@ -44,12 +48,19 @@ or using docker
 # Running in production
 
 Running using python
-
-    FLASK_ENV=production PICKLE_KEY=<key from previous step> python -m optimizerapi.server
+    
+    ## optional add auth url
+    # export PO_AUTH_URL="http://authurl"
+    python scripts/configure_api.py
+    FLASK_ENV=production PICKLE_KEY=<key from previous step>  python -m optimizerapi.server
 
 or use docker
 
-    docker run -d --name process-optimizer-api --env PICKLE_KEY=<key from previous step> -p 9090:9090 process-optimizer-api:latest
+    docker run -d --name process-optimizer-api --env PICKLE_KEY=<key from previous step> --env PO_AUTH_URL="http://authurl" -p 9090:9090 process-optimizer-api:latest
+
+or use docker compose
+
+    docker compose up --build
 
 # Use job queue
 
