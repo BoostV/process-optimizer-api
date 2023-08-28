@@ -4,3 +4,6 @@
 /tmp
 version.txt
 .env
+
+# This file is rendered by the scripts/configure_api.py
+optimizerapi/openapi/specification.yml
