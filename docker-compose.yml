@@ -11,13 +11,15 @@ services:
     environment:
       - USE_WORKER=true
       - REDIS_URL=redis://redis:6379
+      - FLASK_ENV=development
   worker:
     restart: unless-stopped
     depends_on: 
       - redis
     build:
       context: .
-    scale: 10
+    deploy: 
+      replicas: 10
     command: python -m optimizerapi.worker
     environment:
       - REDIS_URL=redis://redis:6379
@@ -27,10 +29,10 @@ services:
     volumes:
       - redis-data:/data
   ui:
-    image: ghcr.io/boostv/process-optimizer-frontend/server:main
+    image: ghcr.io/boostv/process-optimizer-frontend:main
     restart: unless-stopped
     ports:
-      - 3000:3000
+      - 3000:80
     environment:
       - API_SERVER=http://api:9090/v1.0
 
