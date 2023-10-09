@@ -122,6 +122,13 @@ paths:
                           ],
                       },
                   }
+  /health:
+    get:
+      description: Health check endpoint
+      operationId: optimizerapi.health.check
+      responses:
+        "200":
+          description: Service is reachable
 
 components:
   securitySchemes:
