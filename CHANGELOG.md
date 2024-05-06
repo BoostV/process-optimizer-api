@@ -1,6 +1,76 @@
 # Changelog
 
-## [v3.2.0](https://github.com/BoostV/process-optimizer-api/tree/v3.2.0)
+## [Unreleased](https://github.com/BoostV/process-optimizer-api/tree/HEAD)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.5.2...HEAD)
+
+**Merged pull requests:**
+
+- Update ProcessOptimizer to 0.9.5 [\#82](https://github.com/BoostV/process-optimizer-api/pull/82) ([langdal](https://github.com/langdal))
+
+## [v3.5.2](https://github.com/BoostV/process-optimizer-api/tree/v3.5.2) (2023-10-13)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.5.1...v3.5.2)
+
+**Fixed bugs:**
+
+- Adding modellen noise fails for the initial experiments [\#75](https://github.com/BoostV/process-optimizer-api/issues/75)
+
+**Closed issues:**
+
+- Access denied on API due to hardcoded authorization URL [\#77](https://github.com/BoostV/process-optimizer-api/issues/77)
+
+**Merged pull requests:**
+
+- add health check path [\#80](https://github.com/BoostV/process-optimizer-api/pull/80) ([cpbinovo](https://github.com/cpbinovo))
+- fix docker compose [\#79](https://github.com/BoostV/process-optimizer-api/pull/79) ([cpbinovo](https://github.com/cpbinovo))
+
+## [v3.5.1](https://github.com/BoostV/process-optimizer-api/tree/v3.5.1) (2023-08-19)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.5.0...v3.5.1)
+
+**Implemented enhancements:**
+
+- Plot uncertainty of individual experiment plot [\#73](https://github.com/BoostV/process-optimizer-api/issues/73)
+
+**Merged pull requests:**
+
+- Only add modelled noise if result contains a model [\#76](https://github.com/BoostV/process-optimizer-api/pull/76) ([langdal](https://github.com/langdal))
+
+## [v3.5.0](https://github.com/BoostV/process-optimizer-api/tree/v3.5.0) (2023-08-10)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.4.0...v3.5.0)
+
+**Implemented enhancements:**
+
+- Implement new BB plot function [\#71](https://github.com/BoostV/process-optimizer-api/issues/71)
+
+**Merged pull requests:**
+
+- 73 plot uncertainty of individual experiment plot [\#74](https://github.com/BoostV/process-optimizer-api/pull/74) ([langdal](https://github.com/langdal))
+- 71 implement new bb plot function [\#72](https://github.com/BoostV/process-optimizer-api/pull/72) ([langdal](https://github.com/langdal))
+
+## [v3.4.0](https://github.com/BoostV/process-optimizer-api/tree/v3.4.0) (2023-06-27)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.3.0...v3.4.0)
+
+**Implemented enhancements:**
+
+- Return expected\_minimum with std-dev  [\#68](https://github.com/BoostV/process-optimizer-api/issues/68)
+
+**Merged pull requests:**
+
+- Generate single plots [\#70](https://github.com/BoostV/process-optimizer-api/pull/70) ([langdal](https://github.com/langdal))
+
+## [v3.3.0](https://github.com/BoostV/process-optimizer-api/tree/v3.3.0) (2023-06-12)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.2.0...v3.3.0)
+
+**Merged pull requests:**
+
+- 68 return expected minimum with std dev [\#69](https://github.com/BoostV/process-optimizer-api/pull/69) ([langdal](https://github.com/langdal))
+
+## [v3.2.0](https://github.com/BoostV/process-optimizer-api/tree/v3.2.0) (2023-04-28)
 
 [Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.1.0...v3.2.0)
 
