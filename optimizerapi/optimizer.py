@@ -161,7 +161,7 @@ def __handle_run(body) -> dict:
         result = optimizer.tell(Xi, Yi)
         if n_objectives == 1 and len(result.models) > 0:
             if use_actual_measurement_histogram:
-                optimizer.add_modelled_noise()
+                optimizer.add_observational_noise()
                 result = optimizer.get_result()
             result = [result]
     else:
