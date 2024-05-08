@@ -1,6 +1,18 @@
 # Changelog
 
-## [v3.5.3](https://github.com/BoostV/process-optimizer-api/tree/v3.5.3)
+## [v3.5.4](https://github.com/BoostV/process-optimizer-api/tree/HEAD)
+
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.5.3...v3.5.4)
+
+**Closed issues:**
+
+- Pass strategy=cl\_min to ask method when using constraints [\#83](https://github.com/BoostV/process-optimizer-api/issues/83)
+
+**Merged pull requests:**
+
+- Use strategy cl\_min when using cosntraints [\#84](https://github.com/BoostV/process-optimizer-api/pull/84) ([langdal](https://github.com/langdal))
+
+## [v3.5.3](https://github.com/BoostV/process-optimizer-api/tree/v3.5.3) (2024-05-06)
 
 [Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.5.2...v3.5.3)
 
