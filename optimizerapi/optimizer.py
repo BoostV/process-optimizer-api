@@ -244,7 +244,11 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     if "experimentSuggestionCount" in extras:
         experiment_suggestion_count = extras["experimentSuggestionCount"]
 
-    next_exp = optimizer.ask(n_points=experiment_suggestion_count)
+
+    if "constraints" in cfg and len(cfg["constraints"]) > 0:
+        next_exp = optimizer.ask(n_points=experiment_suggestion_count, strategy="cl_min")
+    else:
+        next_exp = optimizer.ask(n_points=experiment_suggestion_count)
     if len(next_exp) > 0 and not any(isinstance(x, list) for x in next_exp):
         next_exp = [next_exp]
     result_details["next"] = round_to_length_scales(next_exp, optimizer.space)
