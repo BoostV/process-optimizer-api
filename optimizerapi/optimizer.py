@@ -43,6 +43,10 @@ if "REDIS_TTL" in os.environ:
     TTL = int(os.environ["REDIS_TTL"])
 else:
     TTL = 500
+if "WORKER_TIMEOUT" in os.environ:
+    WORKER_TIMEOUT = int(os.environ["WORKER_TIMEOUT"])
+else:
+    WORKER_TIMEOUT = 180
 
 plt.switch_backend("Agg")
 
@@ -77,7 +81,7 @@ def run(body) -> dict:
             print("Found existing job")
         except NoSuchJobError:
             print("Creating new job")
-            job = queue.enqueue(do_run_work, body, job_id=job_id, result_ttl=TTL)
+            job = queue.enqueue(do_run_work, body, job_id=job_id, result_ttl=TTL, timeout=WORKER_TIMEOUT)
         while job.return_value is None:
             if disconnect_check():
                 try:
