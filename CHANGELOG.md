@@ -1,8 +1,8 @@
 # Changelog
 
-## [v3.5.4](https://github.com/BoostV/process-optimizer-api/tree/v3.5.4)
+## [v3.5.5](https://github.com/BoostV/process-optimizer-api/tree/v3.5.5)
 
-[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.5.4...v3.5.4)
+[Full Changelog](https://github.com/BoostV/process-optimizer-api/compare/v3.5.4...v3.5.5)
 
 **Merged pull requests:**
 
