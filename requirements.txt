@@ -3,12 +3,12 @@ connexion[swagger-ui]
 python-keycloak==2.13.2
 Flask==2.2.3
 Flask-Cors==3.0.10
-ProcessOptimizer==1.0.0
+ProcessOptimizer==1.0.2
 json-tricks==3.15.5
 jsonschema==4.15.0
 cryptography==3.4.7
 waitress==2.1.2
-rq==1.10.0
+rq==1.16.2
 # ProcessOptimizer requirements
 numpy==1.23.3
 matplotlib==3.5.3
