@@ -78,7 +78,7 @@ def run(body) -> dict:
         except NoSuchJobError:
             print("Creating new job")
             job = queue.enqueue(do_run_work, body, job_id=job_id, result_ttl=TTL)
-        while job.return_value is None:
+        while job.return_value() is None:
             if disconnect_check():
                 try:
                     print(f"Client disconnected, cancelling job {job.id}")
@@ -89,7 +89,7 @@ def run(body) -> dict:
                     pass
                 return {}
             time.sleep(0.2)
-        return job.return_value
+        return job.return_value()
     return do_run_work(body)
 
 
