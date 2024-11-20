@@ -4,6 +4,7 @@ This file contains the main HTTP request handlers for exposing the ProcessOptimi
 The handler functions are mapped to the OpenAPI specification through the "operationId" field
 in the specification.yml file found in the folder "openapi" in the root of this project.
 """
+
 import os
 import platform
 import time
@@ -21,14 +22,18 @@ from rq.exceptions import NoSuchJobError
 from rq.command import send_stop_job_command
 from redis import Redis
 from ProcessOptimizer import Optimizer, expected_minimum
-from ProcessOptimizer.plots import plot_objective, plot_convergence, plot_Pareto
+from ProcessOptimizer.plots import (
+    plot_objective,
+    plot_convergence,
+    plot_Pareto,
+    plot_brownie_bee_frontend,
+)
 from ProcessOptimizer.space import Real
 from ProcessOptimizer.space.constraints import SumEquals
 import matplotlib.pyplot as plt
 import numpy
 import connexion
 
-from optimizerapi.plot_patch import plot_brownie_bee
 from .securepickle import pickleToString, get_crypto
 
 numpy.random.seed(42)
@@ -120,11 +125,13 @@ def __handle_run(body) -> dict:
     )
     space = [
         (
-            convert_number_type(x["from"], x["type"]),
-            convert_number_type(x["to"], x["type"]),
+            (
+                convert_number_type(x["from"], x["type"]),
+                convert_number_type(x["to"], x["type"]),
+            )
+            if (x["type"] == "discrete" or x["type"] == "continuous")
+            else tuple(x["categories"])
         )
-        if (x["type"] == "discrete" or x["type"] == "continuous")
-        else tuple(x["categories"])
         for x in cfg["space"]
     ]
     dimensions = [x["name"] for x in cfg["space"]]
@@ -244,9 +251,10 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     if "experimentSuggestionCount" in extras:
         experiment_suggestion_count = extras["experimentSuggestionCount"]
 
-
     if "constraints" in cfg and len(cfg["constraints"]) > 0:
-        next_exp = optimizer.ask(n_points=experiment_suggestion_count, strategy="cl_min")
+        next_exp = optimizer.ask(
+            n_points=experiment_suggestion_count, strategy="cl_min"
+        )
     else:
         next_exp = optimizer.ask(n_points=experiment_suggestion_count)
     if len(next_exp) > 0 and not any(isinstance(x, list) for x in next_exp):
@@ -260,7 +268,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
         if graph_format == "png":
             for idx, model in enumerate(result):
                 if "single" in graphs_to_return:
-                    bb_plots = plot_brownie_bee(model, max_quality=max_quality)
+                    bb_plots = plot_brownie_bee_frontend(model, max_quality=max_quality)
                     for i, plot in enumerate(bb_plots):
                         pic_io_bytes = io.BytesIO()
                         plot.savefig(pic_io_bytes, format="png")
