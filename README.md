@@ -62,6 +62,13 @@ worker threads using the following commands:
 
 The Redis server can be controlled through the environment variable `REDIS_URL` which defaults to `redis://localhost:6379`
 
+Time to live and timeout of the workers can be controlled with the following environment variables
+
+| Name           | Description                                 |
+| -------------- | ------------------------------------------- |
+| REDIS_TTL      | Time to keep results in redis (default=500) |
+| WORKER_TIMEOUT | Timeout in seconds (default=180)            |
+
 # Use [CORS](https://flask-cors.readthedocs.io/en/latest/index.html)
 
 The API server supports exposing its functionality to other origins than its own.
@@ -92,13 +99,12 @@ The static API key is configured by the environment variable `AUTH_API_KEY`
 
 Keycloak is configured using the following environement variables
 
-
-|Name               |Description                        |
-|-------------------|-----------------------------------|
-|AUTH_SERVER        |Base url of your Keycloak server   |
-|AUTH_REALM_NAME    |OAuth realm name                   |
-|AUTH_CLIENT_ID     |Client ID                          |
-|AUTH_CLIENT_SECRET |Client secret                      |
+| Name               | Description                      |
+| ------------------ | -------------------------------- |
+| AUTH_SERVER        | Base url of your Keycloak server |
+| AUTH_REALM_NAME    | OAuth realm name                 |
+| AUTH_CLIENT_ID     | Client ID                        |
+| AUTH_CLIENT_SECRET | Client secret                    |
 
 # Adding or updating dependencies
 
