@@ -86,7 +86,7 @@ def run(body) -> dict:
             print("Found existing job")
         except NoSuchJobError:
             print("Creating new job")
-            job = queue.enqueue(do_run_work, body, job_id=job_id, result_ttl=TTL, job_timeout=WORKER_TIMEOUT, )
+            job = queue.enqueue(do_run_work, body, job_id=job_id, result_ttl=TTL, job_timeout=WORKER_TIMEOUT)
         while job.return_value() is None:
             if disconnect_check():
                 try:
