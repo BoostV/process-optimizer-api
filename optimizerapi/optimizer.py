@@ -43,14 +43,17 @@ else:
     REDIS_URL = "redis://localhost:6379"
 print("Connecting to" + REDIS_URL)
 redis = Redis.from_url(REDIS_URL)
-queue = Queue(connection=redis)
 if "REDIS_TTL" in os.environ:
     TTL = int(os.environ["REDIS_TTL"])
 else:
     TTL = 500
+if "WORKER_TIMEOUT" in os.environ:
+    WORKER_TIMEOUT = os.environ["WORKER_TIMEOUT"]
+else:
+    WORKER_TIMEOUT = "180"
 
+queue = Queue(connection=redis)
 plt.switch_backend("Agg")
-
 
 def run(body) -> dict:
     """Executes the ProcessOptimizer
@@ -79,10 +82,11 @@ def run(body) -> dict:
         job_id = body_hash.hexdigest()
         try:
             job = Job.fetch(job_id, connection=redis)
+            
             print("Found existing job")
         except NoSuchJobError:
             print("Creating new job")
-            job = queue.enqueue(do_run_work, body, job_id=job_id, result_ttl=TTL)
+            job = queue.enqueue(do_run_work, body, job_id=job_id, result_ttl=TTL, job_timeout=WORKER_TIMEOUT, )
         while job.return_value() is None:
             if disconnect_check():
                 try:
