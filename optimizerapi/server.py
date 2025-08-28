@@ -55,4 +55,4 @@ if __name__ == "__main__":
     if development:
         app.run(port=9090)
     else:
-        serve(app, listen="*:9090", channel_request_lookahead=1)
+        serve(app, listen="*:9090", channel_request_lookahead=1, threads=50)
