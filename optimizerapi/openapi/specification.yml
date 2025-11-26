@@ -13,7 +13,7 @@ paths:
         - oauth2: []
         - apikey: []
       description: Run optimizer with the specified parameters
-      operationId: optimizerapi.optimizer.run
+      operationId: optimizerapi.optimizer_handler.run
       responses:
         "200":
           description: Result of running the optimizer with the specified parameters
