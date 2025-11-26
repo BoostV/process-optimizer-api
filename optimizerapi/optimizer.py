@@ -11,12 +11,14 @@ import base64
 import io
 import json
 import subprocess
+from ProcessOptimizer.utils.utils import get_Pareto_front_compromise
 import json_tricks
 from ProcessOptimizer import Optimizer, expected_minimum
 from ProcessOptimizer.plots import (
     plot_objective,
     plot_convergence,
     plot_Pareto,
+    get_Brownie_Bee_Pareto,
     plot_brownie_bee_frontend,
 )
 from ProcessOptimizer.space import Real
@@ -216,6 +218,21 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
             elif "pareto" in graphs_to_return:
                 plot_Pareto(optimizer)
                 add_plot(plots, "pareto")
+                print("Multi objective, calling new BB plot function")
+                front_x_data, front_y_data, obj1_error, obj2_error = (
+                    get_Brownie_Bee_Pareto(optimizer)
+                )
+                best_idx = get_Pareto_front_compromise(front_y_data)
+                pareto_data = {
+                    "front_x_data": json.dumps(front_x_data.tolist()),
+                    "front_y_data": json.dumps(front_y_data.tolist()),
+                    "obj1_error": json.dumps(obj1_error.tolist()),
+                    "obj2_error": json.dumps(obj2_error.tolist()),
+                    "best_idx": str(best_idx),
+                }
+                plot_Pareto(optimizer)
+                add_plot(plots, "pareto")
+                plots.append({"id": "pareto_data", "plot": json.dumps(pareto_data)})
 
     if pickle_model:
         result_details["pickled"] = pickleToString(result, get_crypto())
