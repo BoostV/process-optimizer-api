@@ -1,0 +1,21 @@
+# AGENTS
+
+- Use Python 3.9+ and `pip install -r requirements-freeze.txt` before running.
+- Start the dev server with `python -m optimizerapi.server` (see README.md).
+- Run the full test suite with `python -m pytest` (watch mode: `ptw`).
+- Run a single test module via `python -m pytest tests/test_optimizer.py`.
+- Run a single test by node id, e.g. `python -m pytest tests/test_optimizer.py::test_can_be_run_without_data`.
+- Lint locally with `flake8 . --max-line-length=127` (matches CI workflow).
+- Prefer standard-library imports, then third-party, then local; keep tests mirroring src layout.
+- Follow existing style: double quotes for JSON-like payload keys, snake_case for functions/variables, CapWords for classes.
+- Type hints are optional; when adding them, use Python typing and keep function signatures simple.
+- Handle errors explicitly; avoid bare `except:` and log or re-raise with context where appropriate.
+- Keep functions small and focused; share logic between API handlers and tests instead of duplicating.
+- Preserve current behavior around environment variables (e.g. `FLASK_ENV`, `CORS_ORIGIN`, `USE_WORKER`).
+- When adding dependencies, update `requirements.txt`, regenerate `requirements-freeze.txt`, and verify with `git diff` (see README.md).
+- When modifying the API, update `optimizerapi/openapi/specification.yml` and keep handler names consistent.
+- Write tests under `tests/` using `pytest` style; use `unittest.mock.patch` for external effects as in `tests/test_optimizer.py`.
+- Keep module-level constants UPPER_SNAKE_CASE; avoid one-letter names except simple indices (see `.pylintrc`).
+- Prefer pure functions where practical; avoid side effects in import time except for necessary configuration.
+- No Cursor or GitHub Copilot instruction files are present; if added later, update this AGENTS file to reference them.
+- Before large refactors, run `python -m pytest` and `flake8 .` to ensure consistency.
