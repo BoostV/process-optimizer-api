@@ -173,10 +173,20 @@ def test_deselecting_plots():
 
 def test_can_accept_multi_objective_data():
     result = optimizer.run(
-        body={"data": sampleMultiObjectiveData, "optimizerConfig": sampleConfig}
+        body={
+            "data": sampleMultiObjectiveData,
+            "optimizerConfig": sampleConfig,
+            "extras": {
+                "experimentSuggestionCount": 1,
+                # "graphs": ["pareto"],
+                # "includeModel": "true",
+                "objectivePars": "expected_minimum",
+            },
+        }
     )
     validateResult(result)
     assert len(result["result"]["models"]) > 1
+    assert "pareto_data" in [x["id"] for x in result["plots"]]
     assert len(result["plots"]) == 5
 
 
