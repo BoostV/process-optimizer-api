@@ -4,28 +4,31 @@ This file contains the central logic for executing the optimizer requests.
 It should only depend on ProcessOptimizer specifics and json related features.
 """
 
-import os
-import platform
-import importlib.metadata
-from time import strftime
 import base64
+import importlib.metadata
 import io
 import json
+import os
+import platform
 import subprocess
+from time import strftime
+
 import json_tricks
-from ProcessOptimizer import Optimizer, expected_minimum
-from ProcessOptimizer.plots import (
-    plot_objective,
-    plot_convergence,
-    plot_Pareto,
-    plot_brownie_bee_frontend,
-)
-from ProcessOptimizer.space import Real
-from ProcessOptimizer.space.constraints import SumEquals
 import matplotlib.pyplot as plt
 import numpy
+from ProcessOptimizer import Optimizer, expected_minimum
+from ProcessOptimizer.plots import (
+    get_Brownie_Bee_1d_plot,
+    get_Brownie_Bee_Pareto,
+    plot_brownie_bee_frontend,
+    plot_convergence,
+    plot_objective,
+)
+from ProcessOptimizer.utils.utils import get_Pareto_front_compromise
+from ProcessOptimizer.space import Real
+from ProcessOptimizer.space.constraints import SumEquals
 
-from .securepickle import pickleToString, get_crypto
+from .securepickle import get_crypto, pickleToString
 
 numpy.random.seed(42)
 plt.switch_backend("Agg")
@@ -214,9 +217,93 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                     round_to_length_scales(minimum[0], optimizer.space),
                     minimum[1],
                 ]
-            elif "pareto" in graphs_to_return:
-                plot_Pareto(optimizer)
-                add_plot(plots, "pareto")
+        elif graph_format == "json":
+            for idx, model in enumerate(result):
+                if "single" in graphs_to_return:
+                    obj1_1D_data = get_Brownie_Bee_1d_plot(result[idx])
+                    histogram_entry = obj1_1D_data[-1]
+                    obj_data = {
+                        "data": obj1_1D_data[:-1],
+                        "histogram": {
+                            "mean": float(numpy.ravel(histogram_entry[0])[0]),
+                            "std": float(numpy.ravel(histogram_entry[1])[0]),
+                        },
+                    }
+                    plots.append(
+                        {
+                            "id": f"single_{idx}",
+                            "plot": json_tricks.dumps(obj_data),
+                        }
+                    )
+                if "convergence" in graphs_to_return:
+                    pass
+                    # skip plotting convergence data in json format
+
+                if "objective" in graphs_to_return:
+                    pass
+                    # skip plotting objective data in json format
+
+            if optimizer.n_objectives == 1:
+                minimum = expected_minimum(result[0], return_std=True)
+                result_details["expected_minimum"] = [
+                    round_to_length_scales(minimum[0], optimizer.space),
+                    minimum[1],
+                ]
+
+            if optimizer.n_objectives == 2 and "pareto" in graphs_to_return:
+                front_x_data, front_y_data, obj1_error, obj2_error = (
+                    get_Brownie_Bee_Pareto(optimizer)
+                )
+                best_idx = get_Pareto_front_compromise(front_y_data)
+                pareto_data = {
+                    "front_x_data": front_x_data.tolist(),
+                    "front_y_data": front_y_data.tolist(),
+                    "obj1_error": obj1_error.tolist(),
+                    "obj2_error": obj2_error.tolist(),
+                    "best_idx": best_idx,
+                }
+                plots.append(
+                    {
+                        "id": "pareto_data",
+                        "plot": json_tricks.dumps(pareto_data),
+                    }
+                )
+
+            if optimizer.n_objectives == 2 and "single" in graphs_to_return:
+                pass
+                # TODO create 2 sets of 1d plots. One for each objective
+
+            # if "1d" in graphs_to_return:
+            #     obj1_1D_data = get_Brownie_Bee_1d_plot(
+            #         result[0], x_eval=front_x_data[best_idx]
+            #     )
+            #     obj1_data = {
+            #         "data": obj1_1D_data[:-1],
+            #         "histogram": obj1_1D_data[-1:],
+            #     }
+            #     plots.append(
+            #         {
+            #             "id": "objective_1_data",
+            #             "plot": json_tricks.dumps(obj1_data),
+            #         }
+            #     )
+            #
+            #     if optimizer.n_objectives == 2:
+            #         obj2_1D_data = get_Brownie_Bee_1d_plot(
+            #             result[1], x_eval=front_x_data[best_idx]
+            #         )
+            #
+            #         obj2_data = {
+            #             "data": obj2_1D_data[:-1],
+            #             "histogram": obj2_1D_data[-1:],
+            #         }
+            #
+            #         plots.append(
+            #             {
+            #                 "id": "objective_2_data",
+            #                 "plot": json_tricks.dumps(obj2_data),
+            #             }
+            #         )
 
     if pickle_model:
         result_details["pickled"] = pickleToString(result, get_crypto())
@@ -347,10 +434,12 @@ def add_version_info(extras):
             The dictionary to hold the version information
     """
 
-    extras["libraries"] = sorted([
-        f"{dist.metadata['Name']}=={dist.version}"
-        for dist in importlib.metadata.distributions()
-    ])
+    extras["libraries"] = sorted(
+        [
+            f"{dist.metadata['Name']}=={dist.version}"
+            for dist in importlib.metadata.distributions()
+        ]
+    )
 
     extras["pythonVersion"] = platform.python_version()
 

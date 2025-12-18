@@ -5,6 +5,7 @@ Test main optimizer module
 from unittest.mock import patch
 import copy
 import collections.abc
+import json
 from optimizerapi import optimizer_handler as optimizer
 
 #  {'data': [{'xi': [651, 56, 722, 'Ræv'], 'yi': 1}, {'xi': [651, 42, 722, 'Ræv'], 'yi': 0.2}], 'optimizerConfig': {'baseEstimator': 'GP', 'acqFunc': 'gp_hedge', 'initialPoints': 5, 'kappa': 1.96, 'xi': 0.012, 'space': [{'type': 'numeric', 'name': 'Sukker', 'from': 0, 'to': 1000}, {'type': 'numeric', 'name': 'Peber', 'from': 0, 'to': 1000}, {'type': 'numeric', 'name': 'Hvedemel', 'from': 0, 'to': 1000}, {'type': 'category', 'name': 'Kunde', 'categories': ['Mus', 'Ræv']}]}}
@@ -148,6 +149,39 @@ def test_specifying_png_plots():
     assert len(result["plots"]) == 2
 
 
+def test_specifying_json_single_plots():
+    result = optimizer.run(
+        body={
+            "data": sampleData,
+            "optimizerConfig": sampleConfig,
+            "extras": {"graphFormat": "json", "graphs": ["single"], "includeModel": "false"},
+        }
+    )
+    # Don't call validateResult() because includeModel is false, so pickled model won't be included
+    assert len(result["result"]["models"]) > 0
+    assert len(result["plots"]) == 1
+    assert result["plots"][0]["id"] == "single_0"
+
+    # Parse the plot as JSON and validate structure
+    plot_data = json.loads(result["plots"][0]["plot"])
+    assert "data" in plot_data
+    assert isinstance(plot_data["data"], list)
+    assert len(plot_data["data"]) == 4  # 4 dimensions in sampleConfig
+
+    # Each dimension should have [xi_list, y_low_list, y_high_list, highlight]
+    for dimension_data in plot_data["data"]:
+        assert isinstance(dimension_data, list)
+        assert len(dimension_data) == 4
+
+    # Check histogram structure
+    assert "histogram" in plot_data
+    assert isinstance(plot_data["histogram"], dict)
+    assert "mean" in plot_data["histogram"]
+    assert "std" in plot_data["histogram"]
+    assert isinstance(plot_data["histogram"]["mean"], (int, float))
+    assert isinstance(plot_data["histogram"]["std"], (int, float))
+
+
 def test_specifying_empty_extras_preserve_legacy_plotting():
     result = optimizer.run(
         body={"data": sampleData, "optimizerConfig": sampleConfig, "extras": {}}
@@ -173,10 +207,20 @@ def test_deselecting_plots():
 
 def test_can_accept_multi_objective_data():
     result = optimizer.run(
-        body={"data": sampleMultiObjectiveData, "optimizerConfig": sampleConfig}
+        body={
+            "data": sampleMultiObjectiveData,
+            "optimizerConfig": sampleConfig,
+            "extras": {
+                "experimentSuggestionCount": 1,
+                # "graphs": ["pareto"],
+                # "includeModel": "true",
+                "objectivePars": "expected_minimum",
+            },
+        }
     )
     validateResult(result)
     assert len(result["result"]["models"]) > 1
+    assert "pareto_data" in [x["id"] for x in result["plots"]]
     assert len(result["plots"]) == 5
 
 

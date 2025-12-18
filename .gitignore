@@ -9,3 +9,4 @@ version.txt
 dist/
 build/
 *.egg
+.sisyphus
