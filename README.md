@@ -13,9 +13,9 @@ Alternatively the project can be build and run with the following commands:
     pip install --upgrade pip
 
     pip install -r requirements-freeze.txt
-    python -m optimizerapi.server
+    uvicorn optimizerapi.server:app --port 9090
 
-Now open [http://localhost:9090/v1.0/ui/](http://localhost:9090/v1.0/ui/) in a browser to explore the API through Swagger UI
+Now open [http://localhost:9090/docs](http://localhost:9090/docs) in a browser to explore the API through Swagger UI
 
 # Running tests
 
@@ -35,7 +35,7 @@ or use pytest-watch for continuously running tests
 
 Run server once and extract a fresh encryption key from the logs.
 
-    python -m optimizerapi.server
+    uvicorn optimizerapi.server:app --port 9090
 
 or using docker
 
@@ -45,11 +45,15 @@ or using docker
 
 Running using python
 
-    FLASK_ENV=production PICKLE_KEY=<key from previous step> python -m optimizerapi.server
+    FLASK_ENV=production PICKLE_KEY=<key from previous step> uvicorn optimizerapi.server:app --host 0.0.0.0 --port 9090
 
 or use docker
 
     docker run -d --name process-optimizer-api --env PICKLE_KEY=<key from previous step> -p 9090:9090 process-optimizer-api:latest
+
+For production with multiple workers, you can use gunicorn:
+
+    gunicorn optimizerapi.server:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:9090
 
 # Use job queue
 
@@ -57,7 +61,7 @@ The API server supports distributing the calculation tasks using a Redis backed 
 To start the API server in "job queue mode" set the environment variable `USE_WORKER=true` and start the server and any number of
 worker threads using the following commands:
 
-    USE_WORKER=true python -m optimizerapi.server
+    USE_WORKER=true uvicorn optimizerapi.server:app --port 9090
     python -m optimizerapi.worker
 
 The Redis server can be controlled through the environment variable `REDIS_URL` which defaults to `redis://localhost:6379`
@@ -69,28 +73,28 @@ Time to live and timeout of the workers can be controlled with the following env
 | REDIS_TTL      | Time to keep results in redis (default=500) |
 | WORKER_TIMEOUT | Timeout in seconds (default=180)            |
 
-# Use [CORS](https://flask-cors.readthedocs.io/en/latest/index.html)
+# Use CORS
 
 The API server supports exposing its functionality to other origins than its own.
 To start the API server in "CORS mode" set the environment variable `CORS_ORIGIN=.*` and start the server.
 This opens up the API server to any origin that might want to request it.
 
-    CORS_ORIGIN=.* python -m optimizerapi.server
+    CORS_ORIGIN=.* uvicorn optimizerapi.server:app --port 9090
 
 You might want to lock the origin down a little tighter. The `CORS_ORIGIN` variable
 is a regular expression and can be used to lock the server to a single host or multiple.
 
 A single specific origin:
 
-    CORS_ORIGIN="https://prod.brownie.projects.alexandra.dk" python -m optimizerapi.server
+    CORS_ORIGIN="https://prod.brownie.projects.alexandra.dk" uvicorn optimizerapi.server:app --port 9090
 
 All subdomains hosted by alexandra.dk:
 
-    CORS_ORIGIN="https://.*.alexandra.dk" python -m optimizerapi.server
+    CORS_ORIGIN="https://.*.alexandra.dk" uvicorn optimizerapi.server:app --port 9090
 
 Two specific origins:
 
-    CORS_ORIGIN="(https://prod.brownie.projects.alexandra.dk|https://prod.cake.projects.alexandra.dk)" python -m optimizerapi.server
+    CORS_ORIGIN="(https://prod.brownie.projects.alexandra.dk|https://prod.cake.projects.alexandra.dk)" uvicorn optimizerapi.server:app --port 9090
 
 # Using authentication
 

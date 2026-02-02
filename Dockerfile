@@ -40,4 +40,4 @@ ENV MPLCONFIGDIR=/tmp/mapplotlib
 ENV PATH=/opt/venv/bin:${PATH}
 VOLUME /code/matplotlib
 
-CMD [ "python", "-m", "optimizerapi.server" ]
+CMD ["uvicorn", "optimizerapi.server:app", "--host", "0.0.0.0", "--port", "9090"]
