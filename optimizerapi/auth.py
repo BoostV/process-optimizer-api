@@ -5,7 +5,7 @@ This module provides authentication via:
 - API key authentication (query parameter or header)
 """
 import os
-from typing import Optional
+from typing import Optional, Dict, Any
 from fastapi import Security, HTTPException, status
 from fastapi.security import APIKeyQuery, APIKeyHeader
 from keycloak import KeycloakOpenID
@@ -21,7 +21,7 @@ AUTH_REALM_NAME = os.getenv("AUTH_REALM_NAME", None)
 _keycloak_openid: Optional[KeycloakOpenID] = None
 
 
-def get_keycloak_client() -> KeycloakOpenID | None:
+def get_keycloak_client() -> Optional[KeycloakOpenID]:
     """Get or create Keycloak OpenID client (lazy initialization)
     
     Returns
@@ -48,7 +48,7 @@ api_key_query = APIKeyQuery(name="apikey", auto_error=False)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-def verify_oauth2_token(access_token: str) -> dict | None:
+def verify_oauth2_token(access_token: str) -> Optional[Dict[str, Any]]:
     """Verify OAuth2 token with Keycloak introspection
     
     Parameters
@@ -98,7 +98,7 @@ def verify_api_key(api_key: str) -> bool:
 async def get_api_key(
     query_key: Optional[str] = Security(api_key_query),
     header_key: Optional[str] = Security(api_key_header)
-) -> dict:
+) -> Dict[str, Any]:
     """FastAPI dependency for authentication
     
     Tries API key authentication (query parameter or header) first.

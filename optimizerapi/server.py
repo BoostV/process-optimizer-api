@@ -3,10 +3,12 @@ FastAPI server for Process Optimizer API
 """
 import os
 import re
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from typing import Dict, Any
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 from .securepickle import get_crypto
+from .auth import get_api_key
 
 # Initialize crypto at module level (preserve current behavior)
 get_crypto()
@@ -45,7 +47,7 @@ else:
 
 
 @app.get("/v1.0/health")
-async def health():
+async def health(token_info: Dict[str, Any] = Depends(get_api_key)):
     """Health check endpoint"""
     return "OK"
 
