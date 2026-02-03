@@ -12,7 +12,7 @@ Alternatively the project can be build and run with the following commands:
     source env/bin/activate
     pip install --upgrade pip
 
-    pip install -r requirements-freeze.txt
+    pip install -e .
     python -m optimizerapi.server
 
 Now open [http://localhost:9090/v1.0/ui/](http://localhost:9090/v1.0/ui/) in a browser to explore the API through Swagger UI
@@ -108,20 +108,21 @@ Keycloak is configured using the following environement variables
 
 # Adding or updating dependencies
 
-When adding a new dependency, you should manually add it to `requirements.txt` and then run the following commands:
+This project uses `pyproject.toml` for dependency management following PEP 621 standards.
 
-    pip install -r requirements.txt
-    pip freeze | grep --invert-match pkg_resources > requirements-freeze.txt
+When adding a new dependency:
 
-Now you should check if the freeze operation resulted in unwanted upates by running:
+1. Add it to the `dependencies` array in `pyproject.toml` with a version constraint
+2. For development dependencies, add to `[project.optional-dependencies]` under `dev`
+3. Install the updated dependencies:
 
-    git diff requirements-freeze.txt
+       pip install -e .
 
-After manually fixing any dependencies, you should run:
+   Or for development dependencies:
 
-    pip install -r requirements-freeze.txt
+       pip install -e ".[dev]"
 
-Remember to commit both the changed `requirements.txt` and `requirements-freeze.txt` files.
+4. Commit the changed `pyproject.toml` file
 
 # Updating the change log
 
