@@ -6,6 +6,7 @@ It should only depend on ProcessOptimizer specifics and json related features.
 
 import os
 import platform
+import importlib.metadata
 from time import strftime
 import base64
 import io
@@ -346,9 +347,10 @@ def add_version_info(extras):
             The dictionary to hold the version information
     """
 
-    with open("requirements-freeze.txt", "r", encoding="utf-8") as requirements_file:
-        requirements = requirements_file.readlines()
-        extras["libraries"] = [x.rstrip() for x in requirements]
+    extras["libraries"] = sorted([
+        f"{dist.metadata['Name']}=={dist.version}"
+        for dist in importlib.metadata.distributions()
+    ])
 
     extras["pythonVersion"] = platform.python_version()
 
