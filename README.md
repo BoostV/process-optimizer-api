@@ -110,6 +110,30 @@ Keycloak is configured using the following environement variables
 | AUTH_CLIENT_ID     | Client ID                        |
 | AUTH_CLIENT_SECRET | Client secret                    |
 
+# Updating the OpenAPI specification
+
+This project uses `optimizerapi/openapi/specification.yml` as the source of truth for API schemas. After modifying the spec:
+
+1. **Regenerate Pydantic models:**
+    ```bash
+    fastapi-codegen --input optimizerapi/openapi/specification.yml --output /tmp/generated
+    ```
+
+2. **Review and copy models:**
+    ```bash
+    diff optimizerapi/models.py /tmp/generated/models.py
+    cp /tmp/generated/models.py optimizerapi/models.py
+    ```
+
+3. **Update route handlers** (if adding/modifying endpoints, manually edit `optimizerapi/server.py`)
+
+4. **Run tests:**
+    ```bash
+    python -m pytest
+    ```
+
+**Note:** The OpenAPI spec is not loaded at runtime. Pydantic models are generated offline and FastAPI generates its own OpenAPI schema at `/openapi.json`.
+
 # Adding or updating dependencies
 
 When adding a new dependency, you should manually add it to `requirements.txt` and then run the following commands:
