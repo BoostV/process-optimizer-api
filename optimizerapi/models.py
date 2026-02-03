@@ -18,7 +18,7 @@ class ObjectivePars(Enum):
 class Extras(BaseModel):
     objectivePars: Optional[ObjectivePars] = None
     graphFormat: Optional[str] = None
-    experimentSuggestionCount: Optional[float] = None
+    experimentSuggestionCount: Optional[int] = None
     maxQuality: Optional[float] = None
     graphs: Optional[List[str]] = ['objective', 'convergence', 'pareto']
 
