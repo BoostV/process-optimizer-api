@@ -158,7 +158,9 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     # as "None" at the moment.
     graph_format = extras.get("graphFormat", "png")
     max_quality = int(extras.get("maxQuality", "5"))
-    graphs_to_return = extras.get("graphs", ["objective", "convergence", "pareto"])
+    graphs_to_return = extras.get(
+        "graphs", ["objective", "convergence", "pareto", "single"]
+    )
 
     objective_pars = extras.get("objectivePars", "result")
 
@@ -250,7 +252,9 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                     minimum[1],
                 ]
 
-            if optimizer.n_objectives == 2 and ("pareto" in graphs_to_return or "single" in graphs_to_return):
+            if optimizer.n_objectives == 2 and (
+                "pareto" in graphs_to_return or "single" in graphs_to_return
+            ):
                 front_x_data, front_y_data, obj1_error, obj2_error = (
                     get_Brownie_Bee_Pareto(optimizer)
                 )
