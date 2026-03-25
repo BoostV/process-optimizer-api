@@ -199,6 +199,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                         plots.append(
                             {"id": f"single_{idx}_{i}", "plot": str(pic_hash, "utf-8")}
                         )
+                        plt.close(plot)
                 if "convergence" in graphs_to_return:
                     plot_convergence(model)
                     add_plot(plots, f"convergence_{idx}")
