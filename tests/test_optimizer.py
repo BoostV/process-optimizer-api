@@ -212,8 +212,8 @@ def test_can_accept_multi_objective_data():
             "optimizerConfig": sampleConfig,
             "extras": {
                 "experimentSuggestionCount": 1,
-                # "graphs": ["pareto"],
-                # "includeModel": "true",
+                "graphFormat": "json",
+                "graphs": ["pareto", "single"],
                 "objectivePars": "expected_minimum",
             },
         }
@@ -221,7 +221,54 @@ def test_can_accept_multi_objective_data():
     validateResult(result)
     assert len(result["result"]["models"]) > 1
     assert "pareto_data" in [x["id"] for x in result["plots"]]
-    assert len(result["plots"]) == 5
+    assert len(result["plots"]) == 3
+
+
+def test_multi_objective_json_single_plots():
+    result = optimizer.run(
+        body={
+            "data": sampleMultiObjectiveData,
+            "optimizerConfig": sampleConfig,
+            "extras": {
+                "graphFormat": "json",
+                "graphs": ["single", "pareto"],
+                "includeModel": "false",
+                "experimentSuggestionCount": 1,
+                "objectivePars": "expected_minimum",
+            },
+        }
+    )
+    # Don't call validateResult() because includeModel is false, so pickled model won't be included
+    assert len(result["result"]["models"]) > 1
+    plot_ids = [x["id"] for x in result["plots"]]
+
+    # No single_0 / single_1 plots for 2-objective runs
+    assert not any(pid.startswith("single_") for pid in plot_ids)
+
+    # Both objective 1D plots exist
+    assert "objective_1_data" in plot_ids
+    assert "objective_2_data" in plot_ids
+
+    for plot_id in ["objective_1_data", "objective_2_data"]:
+        plot_entry = next(x for x in result["plots"] if x["id"] == plot_id)
+        plot_data = json.loads(plot_entry["plot"])
+
+        # "data" should be a list with one entry per dimension (4 dimensions in sampleConfig)
+        assert "data" in plot_data
+        assert isinstance(plot_data["data"], list)
+        assert len(plot_data["data"]) == 4
+
+        # Each dimension entry is a list of 4 items: [xi, y_low, y_high, highlight]
+        for dim_entry in plot_data["data"]:
+            assert isinstance(dim_entry, list)
+            assert len(dim_entry) == 4
+
+        # histogram has mean and std
+        assert "histogram" in plot_data
+        assert "mean" in plot_data["histogram"]
+        assert "std" in plot_data["histogram"]
+        assert isinstance(plot_data["histogram"]["mean"], (int, float))
+        assert isinstance(plot_data["histogram"]["std"], (int, float))
 
 
 def test_deselecting_pickled_model():
