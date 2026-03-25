@@ -1,0 +1,6 @@
+curl 'http://127.0.0.1:9090/v1.0/optimizer?apikey=none' \
+-X 'POST' \
+-H 'Content-Type: application/json' \
+-H 'Accept: */*' \
+--data-raw '{"extras":{"experimentSuggestionCount":1,"graphs":["single", "pareto"],"graphFormat":"json","includeModel":"false","objectivePars":"expected_minimum"},"data":[{"xi":[130,170,210,105],"yi":[-2.1]},{"xi":[190,150,250,135],"yi":[-3.1]},{"xi":[150,130,230,95],"yi":[-1.8]},{"xi":[110,111,270,115],"yi":[-2.1]},{"xi":[176,200,300,122],"yi":[-5]},{"xi":[177,200,300,133],"yi":[-2.5]},{"xi":[146,158,260,112],"yi":[-4.5]}],"optimizerConfig":{"baseEstimator":"GP","acqFunc":"EI","initialPoints":5,"kappa":1.96,"xi":0.1,"space":[{"type":"discrete","name":"Pin elevation","from":100,"to":200},{"type":"discrete","name":"Bungee position","from":100,"to":200},{"type":"discrete","name":"Cup elevation","from":200,"to":300},{"type":"discrete","name":"Firing angle","from":90,"to":140}],"constraints":[]}}'
+
