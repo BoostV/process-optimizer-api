@@ -219,7 +219,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 ]
         elif graph_format == "json":
             for idx, model in enumerate(result):
-                if "single" in graphs_to_return:
+                if "single" in graphs_to_return and optimizer.n_objectives != 2:
                     obj1_1D_data = get_Brownie_Bee_1d_plot(result[idx])
                     histogram_entry = obj1_1D_data[-1]
                     obj_data = {
@@ -250,60 +250,58 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                     minimum[1],
                 ]
 
-            if optimizer.n_objectives == 2 and "pareto" in graphs_to_return:
+            if optimizer.n_objectives == 2 and ("pareto" in graphs_to_return or "single" in graphs_to_return):
                 front_x_data, front_y_data, obj1_error, obj2_error = (
                     get_Brownie_Bee_Pareto(optimizer)
                 )
                 best_idx = get_Pareto_front_compromise(front_y_data)
-                pareto_data = {
-                    "front_x_data": front_x_data.tolist(),
-                    "front_y_data": front_y_data.tolist(),
-                    "obj1_error": obj1_error.tolist(),
-                    "obj2_error": obj2_error.tolist(),
-                    "best_idx": best_idx,
+                if "pareto" in graphs_to_return:
+                    pareto_data = {
+                        "front_x_data": front_x_data.tolist(),
+                        "front_y_data": front_y_data.tolist(),
+                        "obj1_error": obj1_error.tolist(),
+                        "obj2_error": obj2_error.tolist(),
+                        "best_idx": best_idx,
+                    }
+                    plots.append(
+                        {
+                            "id": "pareto_data",
+                            "plot": json_tricks.dumps(pareto_data),
+                        }
+                    )
+
+            if optimizer.n_objectives == 2 and "single" in graphs_to_return:
+                obj1_1D_data = get_Brownie_Bee_1d_plot(result[0])
+                histogram_entry = obj1_1D_data[-1]
+                obj1_data = {
+                    "data": obj1_1D_data[:-1],
+                    "histogram": {
+                        "mean": float(numpy.ravel(histogram_entry[0])[0]),
+                        "std": float(numpy.ravel(histogram_entry[1])[0]),
+                    },
                 }
                 plots.append(
                     {
-                        "id": "pareto_data",
-                        "plot": json_tricks.dumps(pareto_data),
+                        "id": "objective_1_data",
+                        "plot": json_tricks.dumps(obj1_data),
                     }
                 )
 
-            if optimizer.n_objectives == 2 and "single" in graphs_to_return:
-                pass
-                # TODO create 2 sets of 1d plots. One for each objective
-
-            # if "1d" in graphs_to_return:
-            #     obj1_1D_data = get_Brownie_Bee_1d_plot(
-            #         result[0], x_eval=front_x_data[best_idx]
-            #     )
-            #     obj1_data = {
-            #         "data": obj1_1D_data[:-1],
-            #         "histogram": obj1_1D_data[-1:],
-            #     }
-            #     plots.append(
-            #         {
-            #             "id": "objective_1_data",
-            #             "plot": json_tricks.dumps(obj1_data),
-            #         }
-            #     )
-            #
-            #     if optimizer.n_objectives == 2:
-            #         obj2_1D_data = get_Brownie_Bee_1d_plot(
-            #             result[1], x_eval=front_x_data[best_idx]
-            #         )
-            #
-            #         obj2_data = {
-            #             "data": obj2_1D_data[:-1],
-            #             "histogram": obj2_1D_data[-1:],
-            #         }
-            #
-            #         plots.append(
-            #             {
-            #                 "id": "objective_2_data",
-            #                 "plot": json_tricks.dumps(obj2_data),
-            #             }
-            #         )
+                obj2_1D_data = get_Brownie_Bee_1d_plot(result[1])
+                histogram_entry2 = obj2_1D_data[-1]
+                obj2_data = {
+                    "data": obj2_1D_data[:-1],
+                    "histogram": {
+                        "mean": float(numpy.ravel(histogram_entry2[0])[0]),
+                        "std": float(numpy.ravel(histogram_entry2[1])[0]),
+                    },
+                }
+                plots.append(
+                    {
+                        "id": "objective_2_data",
+                        "plot": json_tricks.dumps(obj2_data),
+                    }
+                )
 
     if pickle_model:
         result_details["pickled"] = pickleToString(result, get_crypto())
