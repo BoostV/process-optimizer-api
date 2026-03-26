@@ -212,7 +212,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                         show_confidence=True,
                         pars=objective_pars,
                     )
-                    add_plot(plots, f"objective_{idx}")
+                    add_plot(plots, f"single_{idx}")
 
             if optimizer.n_objectives == 1:
                 minimum = expected_minimum(result[0], return_std=True)
@@ -226,19 +226,29 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                     obj1_1D_data = get_Brownie_Bee_1d_plot(result[idx])
                     histogram_entry = obj1_1D_data[-1]
                     for i, dim_data in enumerate(obj1_1D_data[:-1]):
-                        plots.append({
-                            "id": f"single_{idx}_{i}",
-                            "plot": json_tricks.dumps({"data": dim_data}),
-                        })
-                    plots.append({
-                        "id": f"single_{idx}_{len(obj1_1D_data) - 1}",
-                        "plot": json_tricks.dumps({
-                            "histogram": {
-                                "mean": float(numpy.ravel(histogram_entry[0])[0]),
-                                "std": float(numpy.ravel(histogram_entry[1])[0]),
+                        plots.append(
+                            {
+                                "id": f"single_{idx}_{i}",
+                                "plot": json_tricks.dumps({"data": dim_data}),
                             }
-                        }),
-                    })
+                        )
+                    plots.append(
+                        {
+                            "id": f"single_{idx}_{len(obj1_1D_data) - 1}",
+                            "plot": json_tricks.dumps(
+                                {
+                                    "histogram": {
+                                        "mean": float(
+                                            numpy.ravel(histogram_entry[0])[0]
+                                        ),
+                                        "std": float(
+                                            numpy.ravel(histogram_entry[1])[0]
+                                        ),
+                                    }
+                                }
+                            ),
+                        }
+                    )
                 if "convergence" in graphs_to_return:
                     pass
                     # skip plotting convergence data in json format
@@ -280,36 +290,48 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 obj1_1D_data = get_Brownie_Bee_1d_plot(result[0])
                 histogram_entry = obj1_1D_data[-1]
                 for i, dim_data in enumerate(obj1_1D_data[:-1]):
-                    plots.append({
-                        "id": f"objective_1_{i}",
-                        "plot": json_tricks.dumps({"data": dim_data}),
-                    })
-                plots.append({
-                    "id": f"objective_1_{len(obj1_1D_data) - 1}",
-                    "plot": json_tricks.dumps({
-                        "histogram": {
-                            "mean": float(numpy.ravel(histogram_entry[0])[0]),
-                            "std": float(numpy.ravel(histogram_entry[1])[0]),
+                    plots.append(
+                        {
+                            "id": f"single_1_{i}",
+                            "plot": json_tricks.dumps({"data": dim_data}),
                         }
-                    }),
-                })
+                    )
+                plots.append(
+                    {
+                        "id": f"single_1_{len(obj1_1D_data) - 1}",
+                        "plot": json_tricks.dumps(
+                            {
+                                "histogram": {
+                                    "mean": float(numpy.ravel(histogram_entry[0])[0]),
+                                    "std": float(numpy.ravel(histogram_entry[1])[0]),
+                                }
+                            }
+                        ),
+                    }
+                )
 
                 obj2_1D_data = get_Brownie_Bee_1d_plot(result[1])
                 histogram_entry2 = obj2_1D_data[-1]
                 for i, dim_data in enumerate(obj2_1D_data[:-1]):
-                    plots.append({
-                        "id": f"objective_2_{i}",
-                        "plot": json_tricks.dumps({"data": dim_data}),
-                    })
-                plots.append({
-                    "id": f"objective_2_{len(obj2_1D_data) - 1}",
-                    "plot": json_tricks.dumps({
-                        "histogram": {
-                            "mean": float(numpy.ravel(histogram_entry2[0])[0]),
-                            "std": float(numpy.ravel(histogram_entry2[1])[0]),
+                    plots.append(
+                        {
+                            "id": f"single_2_{i}",
+                            "plot": json_tricks.dumps({"data": dim_data}),
                         }
-                    }),
-                })
+                    )
+                plots.append(
+                    {
+                        "id": f"single_2_{len(obj2_1D_data) - 1}",
+                        "plot": json_tricks.dumps(
+                            {
+                                "histogram": {
+                                    "mean": float(numpy.ravel(histogram_entry2[0])[0]),
+                                    "std": float(numpy.ravel(histogram_entry2[1])[0]),
+                                }
+                            }
+                        ),
+                    }
+                )
 
     if pickle_model:
         result_details["pickled"] = pickleToString(result, get_crypto())
