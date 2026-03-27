@@ -7,6 +7,7 @@ import copy
 import collections.abc
 import json
 from optimizerapi import optimizer_handler as optimizer
+from optimizerapi.securepickle import get_crypto, pickleToString, unpickleFromString
 
 #  {'data': [{'xi': [651, 56, 722, 'Ræv'], 'yi': 1}, {'xi': [651, 42, 722, 'Ræv'], 'yi': 0.2}], 'optimizerConfig': {'baseEstimator': 'GP', 'acqFunc': 'gp_hedge', 'initialPoints': 5, 'kappa': 1.96, 'xi': 0.012, 'space': [{'type': 'numeric', 'name': 'Sukker', 'from': 0, 'to': 1000}, {'type': 'numeric', 'name': 'Peber', 'from': 0, 'to': 1000}, {'type': 'numeric', 'name': 'Hvedemel', 'from': 0, 'to': 1000}, {'type': 'category', 'name': 'Kunde', 'categories': ['Mus', 'Ræv']}]}}
 #   'data': [{'xi': [0, 5, 'Rød'], 'yi': 10}, {'xi': [5, 8.33, 'Hvid'], 'yi': 3}, {'xi': [10, 1.66, 'Rød'], 'yi': 5}],
@@ -429,3 +430,95 @@ def test_selectedPoint_does_not_change_expected_minimum():
         },
     })
     assert default_result["result"]["models"][0]["expected_minimum"] == result_with_selection["result"]["models"][0]["expected_minimum"]
+
+
+def test_pickled_consumption_skips_training():
+    """Test that providing extras.pickled skips model retraining (tell() not called)"""
+    # First run to get pickled
+    first_result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"includeModel": "true"},
+    })
+    pickled_value = first_result["result"]["pickled"]
+    assert len(pickled_value) > 0
+
+    # Second run with pickled - tell() should NOT be called
+    with patch("optimizerapi.optimizer.Optimizer.tell") as mock_tell:
+        second_result = optimizer.run(body={
+            "data": sampleData,
+            "optimizerConfig": sampleConfig,
+            "extras": {"pickled": pickled_value, "includeModel": "false"},
+        })
+        mock_tell.assert_not_called()
+
+    assert "result" in second_result
+    assert "next" in second_result["result"]
+    assert len(second_result["result"]["next"]) > 0
+
+
+def test_old_format_pickled_falls_back():
+    """Test that old-format pickled (list) causes fallback — server returns valid response"""
+    old_format_data = ["some", "old", "data"]
+    old_pickled = pickleToString(old_format_data, get_crypto())
+    result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"pickled": old_pickled, "includeModel": "false"},
+    })
+    assert "result" in result
+    assert "next" in result["result"]
+    assert len(result["result"]["next"]) > 0
+
+
+def test_invalid_pickled_falls_back():
+    """Test that invalid pickled string causes silent fallback to full training run"""
+    result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"pickled": "this_is_not_valid_pickled_data_at_all", "includeModel": "false"},
+    })
+    assert "result" in result
+    assert "next" in result["result"]
+    assert len(result["result"]["next"]) > 0
+
+
+def test_pickled_response_is_dict_format():
+    """Test that pickled response is a dict with keys result, next, optimizer"""
+    result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"includeModel": "true"},
+    })
+    pickled_value = result["result"]["pickled"]
+    assert len(pickled_value) > 0
+    unpickled = unpickleFromString(pickled_value, get_crypto())
+    # Currently pickled is a list - this should FAIL
+    assert isinstance(unpickled, dict), f"Expected dict, got {type(unpickled)}"
+    assert "result" in unpickled
+    assert "next" in unpickled
+    assert "optimizer" in unpickled
+
+
+def test_pickled_round_trip():
+    """Test that pickled from run 1 can be sent as extras.pickled in run 2"""
+    # Run 1
+    first_result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"includeModel": "true"},
+    })
+    pickled_value = first_result["result"]["pickled"]
+    assert len(pickled_value) > 0
+
+    # Run 2 with pickled - should produce a valid response
+    second_result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"pickled": pickled_value, "includeModel": "false"},
+    })
+    assert "result" in second_result
+    assert "next" in second_result["result"]
+    assert len(second_result["result"]["next"]) > 0
+    # Verify plot structure is valid
+    assert "plots" in second_result
