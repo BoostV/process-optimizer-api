@@ -358,7 +358,9 @@ def test_selectedPoint_single_objective_json():
     default_dim0_plot = next(p for p in default_result["plots"] if p["id"] == "single_0_0")
     default_x_highlight = json.loads(default_dim0_plot["plot"])["data"][3]
     selected_point = [100, 200, 300, "Mus"]
-    assert selected_point[0] != default_x_highlight, "selected_point[0] must differ from default highlight for this test to be meaningful"
+    assert selected_point[0] != default_x_highlight, (
+        "selected_point[0] must differ from default highlight for this test to be meaningful"
+    )
     result = optimizer.run(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
@@ -429,7 +431,10 @@ def test_selectedPoint_does_not_change_expected_minimum():
             "selectedPoint": selected_point,
         },
     })
-    assert default_result["result"]["models"][0]["expected_minimum"] == result_with_selection["result"]["models"][0]["expected_minimum"]
+    assert (
+        default_result["result"]["models"][0]["expected_minimum"]
+        == result_with_selection["result"]["models"][0]["expected_minimum"]
+    )
 
 
 def test_pickled_consumption_skips_training():
