@@ -34,6 +34,36 @@ numpy.random.seed(42)
 plt.switch_backend("Agg")
 
 
+def _get_brownie_bee_1d_plot_safe(result, x_eval=None, **kwargs):
+    """Workaround for ProcessOptimizer bug: model.predict must receive space.transform output,
+    not a raw list containing categorical strings."""
+    if x_eval is None:
+        return get_Brownie_Bee_1d_plot(result, x_eval=x_eval, **kwargs)
+
+    space = result.space
+    has_categoricals = any(
+        not isinstance(v, (int, float)) for v in x_eval
+    )
+    if not has_categoricals:
+        return get_Brownie_Bee_1d_plot(result, x_eval=x_eval, **kwargs)
+
+    model = result.models[-1]
+    x_transformed = space.transform([x_eval])
+    original_predict = model.predict
+
+    def _predict_with_transform(X, **predict_kwargs):
+        arr = numpy.array(X)
+        if arr.dtype.kind in ("U", "S", "O"):
+            return original_predict(x_transformed, **predict_kwargs)
+        return original_predict(X, **predict_kwargs)
+
+    model.predict = _predict_with_transform
+    try:
+        return get_Brownie_Bee_1d_plot(result, x_eval=x_eval, **kwargs)
+    finally:
+        model.predict = original_predict
+
+
 def run(body) -> dict:
     """ "Handle the run request"""
     data = [(run["xi"], run["yi"]) for run in body["data"]]
@@ -165,6 +195,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
     objective_pars = extras.get("objectivePars", "result")
 
     pickle_model = json.loads(extras.get("includeModel", "true").lower())
+    selected_point = extras.get("selectedPoint")
 
     # In the following section details that should be reported to
     # clients should go into the "resultDetails" dictionary and plots
@@ -223,7 +254,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
         elif graph_format == "json":
             for idx, model in enumerate(result):
                 if "single" in graphs_to_return and optimizer.n_objectives != 2:
-                    obj1_1D_data = get_Brownie_Bee_1d_plot(result[idx])
+                    obj1_1D_data = _get_brownie_bee_1d_plot_safe(result[idx], x_eval=selected_point)
                     histogram_entry = obj1_1D_data[-1]
                     for i, dim_data in enumerate(obj1_1D_data[:-1]):
                         plots.append(
@@ -287,7 +318,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                     )
 
             if optimizer.n_objectives == 2 and "single" in graphs_to_return:
-                obj1_1D_data = get_Brownie_Bee_1d_plot(result[0])
+                obj1_1D_data = _get_brownie_bee_1d_plot_safe(result[0], x_eval=selected_point)
                 histogram_entry = obj1_1D_data[-1]
                 for i, dim_data in enumerate(obj1_1D_data[:-1]):
                     plots.append(
@@ -310,7 +341,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                     }
                 )
 
-                obj2_1D_data = get_Brownie_Bee_1d_plot(result[1])
+                obj2_1D_data = _get_brownie_bee_1d_plot_safe(result[1], x_eval=selected_point)
                 histogram_entry2 = obj2_1D_data[-1]
                 for i, dim_data in enumerate(obj2_1D_data[:-1]):
                     plots.append(
