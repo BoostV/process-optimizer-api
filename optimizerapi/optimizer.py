@@ -8,6 +8,7 @@ import base64
 import importlib.metadata
 import io
 import json
+import logging
 import os
 import platform
 import subprocess
@@ -28,7 +29,7 @@ from ProcessOptimizer.utils.utils import get_Pareto_front_compromise
 from ProcessOptimizer.space import Real
 from ProcessOptimizer.space.constraints import SumEquals
 
-from .securepickle import get_crypto, pickleToString
+from .securepickle import get_crypto, pickleToString, unpickleFromString
 
 numpy.random.seed(42)
 plt.switch_backend("Agg")
@@ -100,6 +101,32 @@ def run(body) -> dict:
     n_objectives = 1
     if len(Yi) > 0:
         n_objectives = len(Yi[0])
+
+    # Pickled consumption: attempt to skip training if extras.pickled is provided
+    pickled_input = extras.get("pickled", "")
+    if pickled_input:
+        try:
+            unpickled = unpickleFromString(pickled_input, get_crypto())
+            if isinstance(unpickled, dict) and "result" in unpickled and "optimizer" in unpickled:
+                result = unpickled["result"]
+                optimizer = unpickled["optimizer"]
+                response = process_result(result, optimizer, dimensions, cfg, extras, data, space)
+                response["result"]["extras"]["parameters"] = {
+                    "dimensions": dimensions,
+                    "space": space,
+                    "hyperparams": hyperparams,
+                    "Xi": Xi,
+                    "Yi": Yi,
+                    "extras": extras,
+                }
+                return json.loads(json_tricks.dumps(response))
+            else:
+                pickled_input = ""
+        except Exception:
+            logging.getLogger(__name__).warning(
+                "Failed to unpickle extras.pickled, falling back to full run"
+            )
+            pickled_input = ""
 
     if constraints is not None and len(constraints) > 0:
         optimizer = Optimizer(
@@ -365,7 +392,10 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 )
 
     if pickle_model:
-        result_details["pickled"] = pickleToString(result, get_crypto())
+        result_details["pickled"] = pickleToString(
+            {"result": result, "next": result_details["next"], "optimizer": optimizer},
+            get_crypto()
+        )
 
     add_version_info(result_details["extras"])
 
