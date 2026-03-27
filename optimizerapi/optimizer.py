@@ -292,13 +292,13 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 for i, dim_data in enumerate(obj1_1D_data[:-1]):
                     plots.append(
                         {
-                            "id": f"single_1_{i}",
+                            "id": f"objective_1_{i}",
                             "plot": json_tricks.dumps({"data": dim_data}),
                         }
                     )
                 plots.append(
                     {
-                        "id": f"single_1_{len(obj1_1D_data) - 1}",
+                        "id": f"objective_1_{len(obj1_1D_data) - 1}",
                         "plot": json_tricks.dumps(
                             {
                                 "histogram": {
@@ -315,13 +315,13 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 for i, dim_data in enumerate(obj2_1D_data[:-1]):
                     plots.append(
                         {
-                            "id": f"single_2_{i}",
+                            "id": f"objective_2_{i}",
                             "plot": json_tricks.dumps({"data": dim_data}),
                         }
                     )
                 plots.append(
                     {
-                        "id": f"single_2_{len(obj2_1D_data) - 1}",
+                        "id": f"objective_2_{len(obj2_1D_data) - 1}",
                         "plot": json_tricks.dumps(
                             {
                                 "histogram": {
