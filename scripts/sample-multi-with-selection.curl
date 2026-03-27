@@ -1,0 +1,35 @@
+# Sample curl script demonstrating selectedPoint + pickled flow
+# This shows how to:
+# 1. Run an initial optimization and capture the pickled state
+# 2. Use selectedPoint with pickled to regenerate plots without retraining
+
+# ============================================================================
+# STEP 1: Run initial optimization to get pickled state
+# ============================================================================
+# This request runs the optimizer and returns result.pickled in the response.
+# Copy the value of result.pickled from the JSON response for use in Step 2.
+
+curl 'http://localhost:9090/v1.0/optimizer?apikey=none' \
+-X 'POST' \
+-H 'Content-Type: application/json' \
+-H 'Accept: */*' \
+--data-raw '{"extras":{"experimentSuggestionCount":1,"graphs":["pareto","single"],"graphFormat":"json"},"data":[{"xi":[16.7,500,250,20,"None"],"yi":[-2,-17]},{"xi":[50,833,150,60,"Whipped cream"],"yi":[-3,-6]},{"xi":[58.3,22,85,6,"Frosting"],"yi":[-6,-25]}],"optimizerConfig":{"baseEstimator":"GP","acqFunc":"EI","initialPoints":3,"kappa":1.96,"xi":2,"space":[{"type":"continuous","name":"Sugar","from":0,"to":100},{"type":"continuous","name":"Flour","from":0,"to":1000},{"type":"discrete","name":"Temperature","from":0,"to":300},{"type":"discrete","name":"Time","from":0,"to":120},{"type":"category","name":"Finish","categories":["None","Frosting","Whipped cream"]}],"constraints":[]}}'
+
+# ============================================================================
+# STEP 2: Use selectedPoint with pickled to regenerate plots
+# ============================================================================
+# This request reuses the optimizer state (pickled) from Step 1 and selects
+# a specific point [50, 833, 150, 60, "Whipped cream"] from the X-space
+# to regenerate the plots without retraining the model.
+#
+# INSTRUCTIONS:
+# 1. Run the command above and capture the JSON response
+# 2. Find "pickled" in the response (it's a base64-encoded string)
+# 3. Replace <paste result.pickled from first response here> with that value
+# 4. Run this command:
+
+curl 'http://localhost:9090/v1.0/optimizer?apikey=none' \
+-X 'POST' \
+-H 'Content-Type: application/json' \
+-H 'Accept: */*' \
+--data-raw '{"extras":{"experimentSuggestionCount":1,"graphs":["pareto","single"],"graphFormat":"json","selectedPoint":[50,833,150,60,"Whipped cream"],"pickled":"<paste result.pickled from first response here>"},"data":[{"xi":[16.7,500,250,20,"None"],"yi":[-2,-17]},{"xi":[50,833,150,60,"Whipped cream"],"yi":[-3,-6]},{"xi":[58.3,22,85,6,"Frosting"],"yi":[-6,-25]}],"optimizerConfig":{"baseEstimator":"GP","acqFunc":"EI","initialPoints":3,"kappa":1.96,"xi":2,"space":[{"type":"continuous","name":"Sugar","from":0,"to":100},{"type":"continuous","name":"Flour","from":0,"to":1000},{"type":"discrete","name":"Temperature","from":0,"to":300},{"type":"discrete","name":"Time","from":0,"to":120},{"type":"category","name":"Finish","categories":["None","Frosting","Whipped cream"]}],"constraints":[]}}'
