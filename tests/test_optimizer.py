@@ -522,3 +522,142 @@ def test_pickled_round_trip():
     assert len(second_result["result"]["next"]) > 0
     # Verify plot structure is valid
     assert "plots" in second_result
+
+
+# Multi-objective 5-dim data from sample-multi.curl
+sampleMultiObjective5DimData = [
+    {"xi": [16.7, 500, 250, 20, "None"], "yi": [-2, -17]},
+    {"xi": [50, 833, 150, 60, "Whipped cream"], "yi": [-3, -6]},
+    {"xi": [58.3, 22, 85, 6, "Frosting"], "yi": [-6, -25]},
+]
+
+sampleMultiObjective5DimConfig = {
+    "baseEstimator": "GP",
+    "acqFunc": "EI",
+    "initialPoints": 3,
+    "kappa": 1.96,
+    "xi": 2,
+    "space": [
+        {"type": "continuous", "name": "Sugar", "from": 0, "to": 100},
+        {"type": "continuous", "name": "Flour", "from": 0, "to": 1000},
+        {"type": "discrete", "name": "Temperature", "from": 0, "to": 300},
+        {"type": "discrete", "name": "Time", "from": 0, "to": 120},
+        {"type": "category", "name": "Finish", "categories": ["None", "Frosting", "Whipped cream"]},
+    ],
+    "constraints": [],
+}
+
+
+def test_pickled_with_selectedPoint():
+    """Integration test: pickled from run 1 consumed in run 2 with selectedPoint from pareto front"""
+    # Run 1: multi-objective JSON request — get pickled
+    run1_result = optimizer.run(body={
+        "data": sampleMultiObjective5DimData,
+        "optimizerConfig": sampleMultiObjective5DimConfig,
+        "extras": {
+            "experimentSuggestionCount": 1,
+            "graphs": ["pareto", "single"],
+            "graphFormat": "json",
+            "includeModel": "true",
+        },
+    })
+    assert "result" in run1_result
+    pickled_value = run1_result["result"]["pickled"]
+    assert len(pickled_value) > 0
+
+    # Extract a point from pareto front_x_data
+    pareto_plot_entry = next(p for p in run1_result["plots"] if p["id"] == "pareto_data")
+    pareto_data = json.loads(pareto_plot_entry["plot"])
+    front_x_data = pareto_data["front_x_data"]
+    assert len(front_x_data) > 0
+    selected_point = front_x_data[0]
+
+    # Run 2: same request + pickled + selectedPoint
+    run2_result = optimizer.run(body={
+        "data": sampleMultiObjective5DimData,
+        "optimizerConfig": sampleMultiObjective5DimConfig,
+        "extras": {
+            "experimentSuggestionCount": 1,
+            "graphs": ["pareto", "single"],
+            "graphFormat": "json",
+            "pickled": pickled_value,
+            "selectedPoint": selected_point,
+        },
+    })
+
+    # Assert valid response
+    assert "result" in run2_result
+    assert "plots" in run2_result
+    assert len(run2_result["plots"]) > 0
+    assert "next" in run2_result["result"]
+    assert len(run2_result["result"]["next"]) > 0
+
+    # Assert new pickled is present
+    new_pickled = run2_result["result"]["pickled"]
+    assert len(new_pickled) > 0
+
+    # Assert selectedPoint is reflected in objective_1_0 plot
+    obj1_dim0 = next(p for p in run2_result["plots"] if p["id"] == "objective_1_0")
+    plot_data = json.loads(obj1_dim0["plot"])
+    assert plot_data["data"][3] == selected_point[0]
+
+
+def test_pickled_consumption_with_include_model_false():
+    """Integration test: pickled consumed + includeModel=false → pickled suppressed in response"""
+    # Run 1: get pickled
+    run1_result = optimizer.run(body={
+        "data": sampleMultiObjective5DimData,
+        "optimizerConfig": sampleMultiObjective5DimConfig,
+        "extras": {
+            "experimentSuggestionCount": 1,
+            "graphs": ["pareto", "single"],
+            "graphFormat": "json",
+            "includeModel": "true",
+        },
+    })
+    pickled_value = run1_result["result"]["pickled"]
+    assert len(pickled_value) > 0
+
+    # Run 2: consume pickled + includeModel=false
+    run2_result = optimizer.run(body={
+        "data": sampleMultiObjective5DimData,
+        "optimizerConfig": sampleMultiObjective5DimConfig,
+        "extras": {
+            "experimentSuggestionCount": 1,
+            "graphs": ["pareto", "single"],
+            "graphFormat": "json",
+            "pickled": pickled_value,
+            "includeModel": "false",
+        },
+    })
+
+    # includeModel=false suppresses pickled
+    assert "result" in run2_result
+    assert "pickled" in run2_result["result"]
+    assert run2_result["result"]["pickled"] == ""
+
+    # Response is otherwise valid
+    assert "next" in run2_result["result"]
+    assert len(run2_result["result"]["next"]) > 0
+    assert "plots" in run2_result
+    assert len(run2_result["plots"]) > 0
+
+
+def test_selectedPoint_with_no_data():
+    """Integration test: selectedPoint with empty data — server handles gracefully"""
+    selected_point = [50, 833, 150, 60, "Whipped cream"]
+    result = optimizer.run(body={
+        "data": [],
+        "optimizerConfig": sampleMultiObjective5DimConfig,
+        "extras": {
+            "experimentSuggestionCount": 1,
+            "graphs": ["pareto", "single"],
+            "graphFormat": "json",
+            "selectedPoint": selected_point,
+        },
+    })
+
+    # Server handles gracefully — no exception, valid response
+    assert "result" in result
+    # No data means no models trained, so no plots
+    assert "plots" in result
