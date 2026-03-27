@@ -169,6 +169,16 @@ components:
               default: ["objective", "convergence", "pareto"]
               items:
                 type: string
+            selectedPoint:
+              description: Override the highlight point in JSON single plots with explicit X-space coordinates
+              type: array
+              items:
+                anyOf:
+                  - type: string
+                  - type: number
+            pickled:
+              description: Previously-pickled model state to skip expensive GP model retraining
+              type: string
           additionalProperties:
             type: string
         data:
