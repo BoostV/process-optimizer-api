@@ -346,3 +346,86 @@ def test_when_not_using_constraints_standard_strategy_should_be_used(mock):
     request = brownie_without_constraints
     optimizer.run(body=request)
     instance.ask.assert_called_once_with(n_points=3)
+
+
+def test_selectedPoint_single_objective_json():
+    default_result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"graphFormat": "json", "graphs": ["single"], "includeModel": "false"},
+    })
+    default_dim0_plot = next(p for p in default_result["plots"] if p["id"] == "single_0_0")
+    default_x_highlight = json.loads(default_dim0_plot["plot"])["data"][3]
+    selected_point = [100, 200, 300, "Mus"]
+    assert selected_point[0] != default_x_highlight, "selected_point[0] must differ from default highlight for this test to be meaningful"
+    result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {
+            "graphFormat": "json",
+            "graphs": ["single"],
+            "includeModel": "false",
+            "selectedPoint": selected_point,
+        },
+    })
+    assert len(result["plots"]) == len(default_result["plots"])
+    dim0_plot = next(p for p in result["plots"] if p["id"] == "single_0_0")
+    plot_data = json.loads(dim0_plot["plot"])
+    assert plot_data["data"][3] == selected_point[0]
+
+
+def test_selectedPoint_multi_objective_json():
+    selected_point = [651, 56, 722, "Ræv"]
+    result = optimizer.run(body={
+        "data": sampleMultiObjectiveData,
+        "optimizerConfig": sampleConfig,
+        "extras": {
+            "graphFormat": "json",
+            "graphs": ["single"],
+            "includeModel": "false",
+            "experimentSuggestionCount": 1,
+            "selectedPoint": selected_point,
+        },
+    })
+    obj1_dim0 = next(p for p in result["plots"] if p["id"] == "objective_1_0")
+    plot_data = json.loads(obj1_dim0["plot"])
+    assert plot_data["data"][3] == selected_point[0]
+    obj2_dim0 = next(p for p in result["plots"] if p["id"] == "objective_2_0")
+    plot_data2 = json.loads(obj2_dim0["plot"])
+    assert plot_data2["data"][3] == selected_point[0]
+
+
+def test_no_selectedPoint_preserves_default():
+    result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"graphFormat": "json", "graphs": ["single"], "includeModel": "false"},
+    })
+    assert len(result["plots"]) > 0
+    single_plots = [p for p in result["plots"] if p["id"].startswith("single_")]
+    assert len(single_plots) > 0
+    for p in single_plots:
+        plot_data = json.loads(p["plot"])
+        if "histogram" not in plot_data:
+            assert "data" in plot_data
+            assert len(plot_data["data"]) == 4
+
+
+def test_selectedPoint_does_not_change_expected_minimum():
+    default_result = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"graphFormat": "json", "graphs": ["single"], "includeModel": "false"},
+    })
+    selected_point = [651, 56, 722, "Ræv"]
+    result_with_selection = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {
+            "graphFormat": "json",
+            "graphs": ["single"],
+            "includeModel": "false",
+            "selectedPoint": selected_point,
+        },
+    })
+    assert default_result["result"]["models"][0]["expected_minimum"] == result_with_selection["result"]["models"][0]["expected_minimum"]
