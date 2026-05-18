@@ -778,3 +778,25 @@ def test_pickled_fingerprint_mismatch_falls_through(caplog):
     # Response still valid — server fell through to a full run.
     assert "next" in result["result"]
     assert len(result["result"]["next"]) > 0
+
+
+def test_includeModel_false_with_pickled_logs_chain_break_warning(caplog):
+    import logging as _logging
+
+    seed = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"includeModel": "true", "graphFormat": "json"},
+    })
+    pickled_value = seed["result"]["pickled"]
+
+    with caplog.at_level(_logging.WARNING, logger="optimizerapi.optimizer"):
+        second = optimizer.run(body={
+            "data": sampleData,
+            "optimizerConfig": sampleConfig,
+            "extras": {"pickled": pickled_value, "includeModel": "false", "graphFormat": "json"},
+        })
+
+    assert any("includeModel=false with extras.pickled" in r.message for r in caplog.records)
+    # Contract preserved: empty pickled returned.
+    assert second["result"]["pickled"] == ""

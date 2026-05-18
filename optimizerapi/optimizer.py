@@ -105,6 +105,12 @@ def run(body) -> dict:
 
     request_fingerprint = compute_fingerprint(body["data"], cfg)
     pickled_input = extras.get("pickled", "")
+    if pickled_input:
+        include_model_str = str(extras.get("includeModel", "true")).lower()
+        if include_model_str == "false":
+            logging.getLogger(__name__).warning(
+                "includeModel=false with extras.pickled — next call will pay the full cost"
+            )
     cached = unpack_if_valid(
         pickled_input, expected_fingerprint=request_fingerprint, crypto=get_crypto()
     ) if pickled_input else None
