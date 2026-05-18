@@ -17,8 +17,6 @@ import json_tricks
 import matplotlib.pyplot as plt
 import numpy
 from ProcessOptimizer import Optimizer, expected_minimum
-from ProcessOptimizer.plots import get_Brownie_Bee_Pareto
-from ProcessOptimizer.utils.utils import get_Pareto_front_compromise
 from ProcessOptimizer.space import Real
 from ProcessOptimizer.space.constraints import SumEquals
 
@@ -26,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 
 from .securepickle import get_crypto
 from .pickled_state import compute_fingerprint, pack, unpack_if_valid
-from .plot_emitters import emit_json_single_plots, emit_png_plots
+from .plot_emitters import emit_json_single_plots, emit_pareto_data, emit_png_plots
 
 if TYPE_CHECKING:
     from .types import Extras, OptimizerConfig, Plot, RequestBody
@@ -353,27 +351,8 @@ def process_result(
             if optimizer.n_objectives == 1:
                 _set_expected_minimum(result_details, result[0], optimizer.space)
 
-            if optimizer.n_objectives == 2 and (
-                "pareto" in graphs_to_return or "single" in graphs_to_return
-            ):
-                front_x_data, front_y_data, obj1_error, obj2_error = (
-                    get_Brownie_Bee_Pareto(optimizer, n_points=200)
-                )
-                best_idx = get_Pareto_front_compromise(front_y_data)
-                if "pareto" in graphs_to_return:
-                    pareto_data = {
-                        "front_x_data": front_x_data.tolist(),
-                        "front_y_data": front_y_data.tolist(),
-                        "obj1_error": obj1_error.tolist(),
-                        "obj2_error": obj2_error.tolist(),
-                        "best_idx": best_idx,
-                    }
-                    plots.append(
-                        {
-                            "id": "pareto_data",
-                            "plot": json_tricks.dumps(pareto_data),
-                        }
-                    )
+            if optimizer.n_objectives == 2 and "pareto" in graphs_to_return:
+                emit_pareto_data(plots, optimizer)
 
             if optimizer.n_objectives == 2 and "single" in graphs_to_return:
                 emit_json_single_plots(

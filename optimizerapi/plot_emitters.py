@@ -15,10 +15,12 @@ import matplotlib.pyplot as plt
 import numpy
 from ProcessOptimizer.plots import (
     get_Brownie_Bee_1d_plot,
+    get_Brownie_Bee_Pareto,
     plot_brownie_bee_frontend,
     plot_convergence,
     plot_objective,
 )
+from ProcessOptimizer.utils.utils import get_Pareto_front_compromise
 
 if TYPE_CHECKING:
     from .types import Plot
@@ -127,6 +129,22 @@ def emit_png_plots(
                 pars=objective_pars,
             )
             _emit_current_figure(plots, f"single_{idx}")
+
+
+def emit_pareto_data(plots: "list[Plot]", optimizer: object) -> None:
+    """Append the pareto-front payload (multi-objective only)."""
+    front_x_data, front_y_data, obj1_error, obj2_error = get_Brownie_Bee_Pareto(
+        optimizer, n_points=200
+    )
+    best_idx = get_Pareto_front_compromise(front_y_data)
+    pareto_data = {
+        "front_x_data": front_x_data.tolist(),
+        "front_y_data": front_y_data.tolist(),
+        "obj1_error": obj1_error.tolist(),
+        "obj2_error": obj2_error.tolist(),
+        "best_idx": best_idx,
+    }
+    plots.append({"id": "pareto_data", "plot": json_tricks.dumps(pareto_data)})
 
 
 def _figure_to_b64(figure) -> str:
