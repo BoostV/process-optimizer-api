@@ -126,6 +126,43 @@ def _parse_extras(extras: "Extras", logger: "logging.Logger") -> _ParsedExtras:
     )
 
 
+def _compute_next_experiments(
+    optimizer: Any,
+    cfg: "OptimizerConfig",
+    n_points: int,
+) -> list[list[str | float]]:
+    """Ask the optimizer for the next N experiments, normalising the shape.
+
+    ``optimizer.ask`` can return either a single experiment (flat list) or
+    a list of experiments. We always return a list of lists.
+    """
+    constraints = cfg.get("constraints", [])
+    if constraints:
+        next_exp = optimizer.ask(n_points=n_points, strategy="cl_min")
+    else:
+        next_exp = optimizer.ask(n_points=n_points)
+    if next_exp and not any(isinstance(x, list) for x in next_exp):
+        next_exp = [next_exp]
+    return round_to_length_scales(next_exp, optimizer.space)
+
+
+def _flatten_expected_minima(models: list[dict]) -> None:
+    """In-place flatten of nested ``expected_minimum`` entries on each model.
+
+    The pre-flatten shape from ``process_model`` can be a list of mixed
+    scalars and lists; the response contract is a single flat list inside
+    a one-element outer list. This function normalises that.
+    """
+    for model in models:
+        flat = []
+        for x in model["expected_minimum"]:
+            if isinstance(x, list):
+                flat.extend(x)
+            else:
+                flat.append(x)
+        model["expected_minimum"] = [flat]
+
+
 def run(body: "RequestBody") -> dict:
     """Handle the run request.
 
@@ -307,15 +344,9 @@ def process_result(
     selected_point = parsed.selected_point
     experiment_suggestion_count = parsed.experiment_suggestion_count
 
-    if "constraints" in cfg and len(cfg["constraints"]) > 0:
-        next_exp = optimizer.ask(
-            n_points=experiment_suggestion_count, strategy="cl_min"
-        )
-    else:
-        next_exp = optimizer.ask(n_points=experiment_suggestion_count)
-    if len(next_exp) > 0 and not any(isinstance(x, list) for x in next_exp):
-        next_exp = [next_exp]
-    result_details["next"] = round_to_length_scales(next_exp, optimizer.space)
+    result_details["next"] = _compute_next_experiments(
+        optimizer, cfg, experiment_suggestion_count
+    )
 
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
@@ -479,18 +510,7 @@ def process_result(
     add_version_info(result_details["extras"])
     result_details["extras"]["pickledUsed"] = pickled_used
 
-    org_models = response["result"]["models"]
-    for model in org_models:
-        # Flatten expected minimum entries
-        model["expected_minimum"] = [
-            [
-                item
-                for sublist in [
-                    x if isinstance(x, list) else [x] for x in model["expected_minimum"]
-                ]
-                for item in sublist
-            ]
-        ]
+    _flatten_expected_minima(response["result"]["models"])
     return response
 
 
