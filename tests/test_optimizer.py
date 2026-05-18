@@ -685,3 +685,48 @@ def test_selectedPoint_with_no_data():
     assert "result" in result
     # No data means no models trained, so no plots
     assert "plots" in result
+
+
+def test_equivalence_with_and_without_pickled_multi_objective():
+    """Same selectedPoint, same data: pickled vs no-pickled produce identical single plots."""
+    base_body = {
+        "data": sampleMultiObjective5DimData,
+        "optimizerConfig": sampleMultiObjective5DimConfig,
+        "extras": {
+            "graphs": ["single", "pareto"],
+            "graphFormat": "json",
+            "selectedPoint": [50, 833, 150, 60, "Whipped cream"],
+            "includeModel": "true",
+        },
+    }
+
+    # Seed: one full run to capture pickled.
+    seed = optimizer.run(body=copy.deepcopy({
+        **base_body,
+        "extras": {**base_body["extras"], "selectedPoint": None},
+    }))
+    pickled_value = seed["result"]["pickled"]
+    assert len(pickled_value) > 0
+
+    # Run A: no pickled (full retrain), with selectedPoint.
+    body_no_pickle = copy.deepcopy(base_body)
+    result_no_pickle = optimizer.run(body=body_no_pickle)
+
+    # Run B: same request + pickled.
+    body_with_pickle = copy.deepcopy(base_body)
+    body_with_pickle["extras"]["pickled"] = pickled_value
+    result_with_pickle = optimizer.run(body=body_with_pickle)
+
+    # Sanity: fast path actually engaged.
+    assert result_with_pickle["result"]["extras"]["pickledUsed"] is True
+    assert result_no_pickle["result"]["extras"]["pickledUsed"] is False
+
+    # Compare every plot entry except the pickled string itself (which is
+    # not in plots) — identical plot ids and identical plot bodies.
+    plots_no_pickle = {p["id"]: p["plot"] for p in result_no_pickle["plots"]}
+    plots_with_pickle = {p["id"]: p["plot"] for p in result_with_pickle["plots"]}
+    assert set(plots_no_pickle) == set(plots_with_pickle)
+    for plot_id in plots_no_pickle:
+        assert plots_no_pickle[plot_id] == plots_with_pickle[plot_id], (
+            f"divergence on plot {plot_id}"
+        )
