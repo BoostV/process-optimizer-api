@@ -4,9 +4,7 @@ This file contains the central logic for executing the optimizer requests.
 It should only depend on ProcessOptimizer specifics and json related features.
 """
 
-import base64
 import importlib.metadata
-import io
 import json
 import logging
 import os
@@ -19,12 +17,7 @@ import json_tricks
 import matplotlib.pyplot as plt
 import numpy
 from ProcessOptimizer import Optimizer, expected_minimum
-from ProcessOptimizer.plots import (
-    get_Brownie_Bee_Pareto,
-    plot_brownie_bee_frontend,
-    plot_convergence,
-    plot_objective,
-)
+from ProcessOptimizer.plots import get_Brownie_Bee_Pareto
 from ProcessOptimizer.utils.utils import get_Pareto_front_compromise
 from ProcessOptimizer.space import Real
 from ProcessOptimizer.space.constraints import SumEquals
@@ -33,7 +26,7 @@ from typing import TYPE_CHECKING, Any
 
 from .securepickle import get_crypto
 from .pickled_state import compute_fingerprint, pack, unpack_if_valid
-from .plot_emitters import emit_json_single_plots
+from .plot_emitters import emit_json_single_plots, emit_png_plots
 
 if TYPE_CHECKING:
     from .types import Extras, OptimizerConfig, Plot, RequestBody
@@ -131,6 +124,19 @@ def _flatten_expected_minima(models: list[dict]) -> None:
             else:
                 flat.append(x)
         model["expected_minimum"] = [flat]
+
+
+def _set_expected_minimum(
+    result_details: dict,
+    single_result: object,
+    space: object,
+) -> None:
+    """Compute and store the expected minimum (single-objective only)."""
+    minimum = expected_minimum(single_result, return_std=True)
+    result_details["expected_minimum"] = [
+        round_to_length_scales(minimum[0], space),
+        minimum[1],
+    ]
 
 
 def run(body: "RequestBody") -> dict:
@@ -323,38 +329,16 @@ def process_result(
         # processed more than "initialPoints" data points
         result_details["models"] = [process_model(model, optimizer) for model in result]
         if graph_format == "png":
-            for idx, model in enumerate(result):
-                if "single" in graphs_to_return:
-                    bb_plots = plot_brownie_bee_frontend(model, max_quality=max_quality)
-                    for i, plot in enumerate(bb_plots):
-                        pic_io_bytes = io.BytesIO()
-                        plot.savefig(pic_io_bytes, format="png")
-                        pic_io_bytes.seek(0)
-                        pic_hash = base64.b64encode(pic_io_bytes.read())
-                        plots.append(
-                            {"id": f"single_{idx}_{i}", "plot": str(pic_hash, "utf-8")}
-                        )
-                        plt.close(plot)
-                if "convergence" in graphs_to_return:
-                    plot_convergence(model)
-                    add_plot(plots, f"convergence_{idx}")
-
-                if "objective" in graphs_to_return:
-                    plot_objective(
-                        model,
-                        dimensions=dimensions,
-                        usepartialdependence=False,
-                        show_confidence=True,
-                        pars=objective_pars,
-                    )
-                    add_plot(plots, f"single_{idx}")
-
+            emit_png_plots(
+                plots,
+                result=result,
+                dimensions=dimensions,
+                graphs=graphs_to_return,
+                max_quality=max_quality,
+                objective_pars=objective_pars,
+            )
             if optimizer.n_objectives == 1:
-                minimum = expected_minimum(result[0], return_std=True)
-                result_details["expected_minimum"] = [
-                    round_to_length_scales(minimum[0], optimizer.space),
-                    minimum[1],
-                ]
+                _set_expected_minimum(result_details, result[0], optimizer.space)
         elif graph_format == "json":
             for idx, model in enumerate(result):
                 if "single" in graphs_to_return and optimizer.n_objectives != 2:
@@ -367,11 +351,7 @@ def process_result(
             # convergence and objective plots are PNG-only; nothing to emit here.
 
             if optimizer.n_objectives == 1:
-                minimum = expected_minimum(result[0], return_std=True)
-                result_details["expected_minimum"] = [
-                    round_to_length_scales(minimum[0], optimizer.space),
-                    minimum[1],
-                ]
+                _set_expected_minimum(result_details, result[0], optimizer.space)
 
             if optimizer.n_objectives == 2 and (
                 "pareto" in graphs_to_return or "single" in graphs_to_return
@@ -445,41 +425,6 @@ def process_model(model, optimizer):
         round(minimum[1], 2),
     ]
     return result_details
-
-
-def add_plot(result, id="generic", close=True, debug=False):
-    """Add the current figure to result as a base64 encoded string.
-
-    This function should be called after every plot that is generated.
-    It takes the current state of the figure canvas and writes it to
-    a base64 encoded string which is then appended to the list supplied.
-
-    Parameters
-    ----------
-    result : list
-        The list of plots to which new plots should be addeed.
-    id : str
-        Identifier for the plot (default is "generic")
-    close : bool
-        If set to True the current matplot figure is cleared after the plot
-        has been saved. (default is True)
-    debug : bool
-        Indicate if plots should be written to local files.
-        If set to True plots are stored in tmp/process_optimizer_[id].png
-        relative to current working directory. (default is False)
-    """
-    pic_io_bytes = io.BytesIO()
-    plt.savefig(pic_io_bytes, format="png", bbox_inches="tight")
-    pic_io_bytes.seek(0)
-    pic_hash = base64.b64encode(pic_io_bytes.read())
-    result.append({"id": id, "plot": str(pic_hash, "utf-8")})
-
-    if debug:
-        with open("tmp/process_optimizer_" + id + ".png", "wb") as imgfile:
-            plt.savefig(imgfile, bbox_inches="tight", pad_inches=0)
-
-    if close:
-        plt.clf()
 
 
 def round_to_length_scales(x, space):

@@ -6,11 +6,19 @@ Two output formats are supported:
   plot data, used by the React-based UI.
 """
 
+import base64
+import io
 from typing import TYPE_CHECKING, Any
 
 import json_tricks
+import matplotlib.pyplot as plt
 import numpy
-from ProcessOptimizer.plots import get_Brownie_Bee_1d_plot
+from ProcessOptimizer.plots import (
+    get_Brownie_Bee_1d_plot,
+    plot_brownie_bee_frontend,
+    plot_convergence,
+    plot_objective,
+)
 
 if TYPE_CHECKING:
     from .types import Plot
@@ -86,3 +94,52 @@ def emit_json_single_plots(
             ),
         }
     )
+
+
+def emit_png_plots(
+    plots: "list[Plot]",
+    *,
+    result: list,
+    dimensions: list[str],
+    graphs: list[str],
+    max_quality: int,
+    objective_pars: str,
+) -> None:
+    """Append base64-encoded PNG plots for each model in ``result``."""
+    for idx, model in enumerate(result):
+        if "single" in graphs:
+            bb_plots = plot_brownie_bee_frontend(model, max_quality=max_quality)
+            for i, plot in enumerate(bb_plots):
+                plots.append(
+                    {"id": f"single_{idx}_{i}", "plot": _figure_to_b64(plot)}
+                )
+                plt.close(plot)
+        if "convergence" in graphs:
+            plot_convergence(model)
+            _emit_current_figure(plots, f"convergence_{idx}")
+
+        if "objective" in graphs:
+            plot_objective(
+                model,
+                dimensions=dimensions,
+                usepartialdependence=False,
+                show_confidence=True,
+                pars=objective_pars,
+            )
+            _emit_current_figure(plots, f"single_{idx}")
+
+
+def _figure_to_b64(figure) -> str:
+    buf = io.BytesIO()
+    figure.savefig(buf, format="png")
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode("utf-8")
+
+
+def _emit_current_figure(plots: "list[Plot]", plot_id: str) -> None:
+    """Snapshot the current matplotlib figure into ``plots`` and clear it."""
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches="tight")
+    buf.seek(0)
+    plots.append({"id": plot_id, "plot": base64.b64encode(buf.read()).decode("utf-8")})
+    plt.clf()
