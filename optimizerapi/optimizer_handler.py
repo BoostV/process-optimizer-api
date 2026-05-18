@@ -5,11 +5,13 @@ The handler functions are mapped to the OpenAPI specification through the "opera
 in the specification.yml file found in the folder "openapi" in the root of this project.
 """
 
+import hashlib
+import json
+import logging
 import os
 import time
-import json
 import traceback
-import hashlib
+
 from rq import Queue
 from rq.job import Job
 from rq.exceptions import NoSuchJobError
@@ -18,11 +20,10 @@ from redis import Redis
 import connexion
 from .optimizer import run as handle_run
 
-if "REDIS_URL" in os.environ:
-    REDIS_URL = os.environ["REDIS_URL"]
-else:
-    REDIS_URL = "redis://localhost:6379"
-print("Connecting to" + REDIS_URL)
+_LOG = logging.getLogger(__name__)
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+_LOG.info("Connecting to %s", REDIS_URL)
 redis = Redis.from_url(REDIS_URL)
 if "REDIS_TTL" in os.environ:
     TTL = int(os.environ["REDIS_TTL"])
@@ -63,10 +64,9 @@ def run(body) -> dict:
         job_id = body_hash.hexdigest()
         try:
             job = Job.fetch(job_id, connection=redis)
-
-            print("Found existing job")
+            _LOG.info("Found existing job %s", job_id)
         except NoSuchJobError:
-            print(f"Creating new job (WORKER_TIMEOUT={WORKER_TIMEOUT})")
+            _LOG.info("Creating new job (WORKER_TIMEOUT=%s)", WORKER_TIMEOUT)
             job = queue.enqueue(
                 do_run_work,
                 body,
@@ -77,7 +77,7 @@ def run(body) -> dict:
         while job.return_value() is None:
             if disconnect_check():
                 try:
-                    print(f"Client disconnected, cancelling job {job.id}")
+                    _LOG.warning("Client disconnected, cancelling job %s", job.id)
                     job.cancel()
                     send_stop_job_command(redis, job.id)
                     job.delete()
