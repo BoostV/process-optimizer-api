@@ -673,7 +673,7 @@ def test_pickled_used_flag_round_trip():
     first = optimizer.run(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
-        "extras": {"includeModel": "true"},
+        "extras": {"includeModel": "true", "graphFormat": "json"},
     })
     assert first["result"]["extras"]["pickledUsed"] is False
     pickled_value = first["result"]["pickled"]
@@ -682,7 +682,7 @@ def test_pickled_used_flag_round_trip():
     second = optimizer.run(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
-        "extras": {"includeModel": "true", "pickled": pickled_value},
+        "extras": {"includeModel": "true", "pickled": pickled_value, "graphFormat": "json"},
     })
     assert second["result"]["extras"]["pickledUsed"] is True
 
@@ -759,7 +759,7 @@ def test_pickled_fingerprint_mismatch_falls_through(caplog):
     seed = optimizer.run(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
-        "extras": {"includeModel": "true"},
+        "extras": {"includeModel": "true", "graphFormat": "json"},
     })
     pickled_value = seed["result"]["pickled"]
     assert len(pickled_value) > 0
@@ -770,7 +770,7 @@ def test_pickled_fingerprint_mismatch_falls_through(caplog):
         result = optimizer.run(body={
             "data": altered_data,
             "optimizerConfig": sampleConfig,
-            "extras": {"includeModel": "true", "pickled": pickled_value},
+            "extras": {"includeModel": "true", "pickled": pickled_value, "graphFormat": "json"},
         })
 
     assert result["result"]["extras"]["pickledUsed"] is False
