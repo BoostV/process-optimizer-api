@@ -8,15 +8,24 @@ through to a full run instead of silently buggy reuse.
 import hashlib
 import json
 import logging
+from typing import TYPE_CHECKING, cast
 
 from .securepickle import pickleToString, unpickleFromString
+
+if TYPE_CHECKING:
+    from cryptography.fernet import Fernet
+
+    from .types import CachePayload, DataPoint, OptimizerConfig
 
 _LOG = logging.getLogger(__name__)
 
 _REQUIRED_KEYS = ("fingerprint", "result", "next", "optimizer")
 
 
-def compute_fingerprint(data, optimizer_config):
+def compute_fingerprint(
+    data: list["DataPoint"],
+    optimizer_config: "OptimizerConfig",
+) -> str:
     """Return sha256 hex of the canonical-JSON of (data, optimizerConfig).
 
     Canonical JSON: sorted keys, no whitespace. Numbers are emitted as Python's
@@ -28,7 +37,14 @@ def compute_fingerprint(data, optimizer_config):
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def pack(*, result, next_points, optimizer, fingerprint, crypto):
+def pack(
+    *,
+    result: object,
+    next_points: list[list[str | float]],
+    optimizer: object,
+    fingerprint: str,
+    crypto: "Fernet",
+) -> str:
     """Encrypt a pickled cache payload for the given fingerprint."""
     payload = {
         "fingerprint": fingerprint,
@@ -36,10 +52,15 @@ def pack(*, result, next_points, optimizer, fingerprint, crypto):
         "next": next_points,
         "optimizer": optimizer,
     }
-    return pickleToString(payload, crypto)
+    return cast(str, pickleToString(payload, crypto))
 
 
-def unpack_if_valid(blob, *, expected_fingerprint, crypto):
+def unpack_if_valid(
+    blob: str,
+    *,
+    expected_fingerprint: str,
+    crypto: "Fernet",
+) -> "CachePayload | None":
     """Decrypt and validate a pickled cache payload.
 
     Returns the payload dict on success, or None if anything is off. Any
@@ -59,4 +80,4 @@ def unpack_if_valid(blob, *, expected_fingerprint, crypto):
     if payload["fingerprint"] != expected_fingerprint:
         _LOG.warning("pickled cache ignored: fingerprint_mismatch")
         return None
-    return payload
+    return payload  # type: ignore[return-value]
