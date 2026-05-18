@@ -20,7 +20,6 @@ import matplotlib.pyplot as plt
 import numpy
 from ProcessOptimizer import Optimizer, expected_minimum
 from ProcessOptimizer.plots import (
-    get_Brownie_Bee_1d_plot,
     get_Brownie_Bee_Pareto,
     plot_brownie_bee_frontend,
     plot_convergence,
@@ -34,42 +33,13 @@ from typing import TYPE_CHECKING, Any
 
 from .securepickle import get_crypto
 from .pickled_state import compute_fingerprint, pack, unpack_if_valid
+from .plot_emitters import emit_json_single_plots
 
 if TYPE_CHECKING:
-    from .types import Extras, OptimizerConfig, RequestBody
+    from .types import Extras, OptimizerConfig, Plot, RequestBody
 
 numpy.random.seed(42)
 plt.switch_backend("Agg")
-
-
-def _get_brownie_bee_1d_plot_safe(result, x_eval=None, **kwargs):
-    """Workaround for ProcessOptimizer bug: model.predict must receive space.transform output,
-    not a raw list containing categorical strings."""
-    if x_eval is None:
-        return get_Brownie_Bee_1d_plot(result, x_eval=x_eval, **kwargs)
-
-    space = result.space
-    has_categoricals = any(
-        not isinstance(v, (int, float)) for v in x_eval
-    )
-    if not has_categoricals:
-        return get_Brownie_Bee_1d_plot(result, x_eval=x_eval, **kwargs)
-
-    model = result.models[-1]
-    x_transformed = space.transform([x_eval])
-    original_predict = model.predict
-
-    def _predict_with_transform(X, **predict_kwargs):
-        arr = numpy.array(X)
-        if arr.dtype.kind in ("U", "S", "O"):
-            return original_predict(x_transformed, **predict_kwargs)
-        return original_predict(X, **predict_kwargs)
-
-    model.predict = _predict_with_transform
-    try:
-        return get_Brownie_Bee_1d_plot(result, x_eval=x_eval, **kwargs)
-    finally:
-        model.predict = original_predict
 
 
 @dataclass(frozen=True)
@@ -330,7 +300,7 @@ def process_result(
         }
     """
     result_details = {"next": [], "models": [], "pickled": "", "extras": {}}
-    plots = []
+    plots: "list[Plot]" = []
     response = {"plots": plots, "result": result_details}
     # GraphFormat should, at the moment, be either "png" or "none". Default (legacy)
     # behavior is "png", so the API returns png images. Any other input is interpreted
@@ -388,39 +358,13 @@ def process_result(
         elif graph_format == "json":
             for idx, model in enumerate(result):
                 if "single" in graphs_to_return and optimizer.n_objectives != 2:
-                    obj1_1D_data = _get_brownie_bee_1d_plot_safe(result[idx], x_eval=selected_point)
-                    histogram_entry = obj1_1D_data[-1]
-                    for i, dim_data in enumerate(obj1_1D_data[:-1]):
-                        plots.append(
-                            {
-                                "id": f"single_{idx}_{i}",
-                                "plot": json_tricks.dumps({"data": dim_data}),
-                            }
-                        )
-                    plots.append(
-                        {
-                            "id": f"single_{idx}_{len(obj1_1D_data) - 1}",
-                            "plot": json_tricks.dumps(
-                                {
-                                    "histogram": {
-                                        "mean": float(
-                                            numpy.ravel(histogram_entry[0])[0]
-                                        ),
-                                        "std": float(
-                                            numpy.ravel(histogram_entry[1])[0]
-                                        ),
-                                    }
-                                }
-                            ),
-                        }
+                    emit_json_single_plots(
+                        plots,
+                        result=result[idx],
+                        prefix=f"single_{idx}",
+                        selected_point=selected_point,
                     )
-                if "convergence" in graphs_to_return:
-                    pass
-                    # skip plotting convergence data in json format
-
-                if "objective" in graphs_to_return:
-                    pass
-                    # skip plotting objective data in json format
+            # convergence and objective plots are PNG-only; nothing to emit here.
 
             if optimizer.n_objectives == 1:
                 minimum = expected_minimum(result[0], return_std=True)
@@ -452,50 +396,17 @@ def process_result(
                     )
 
             if optimizer.n_objectives == 2 and "single" in graphs_to_return:
-                obj1_1D_data = _get_brownie_bee_1d_plot_safe(result[0], x_eval=selected_point)
-                histogram_entry = obj1_1D_data[-1]
-                for i, dim_data in enumerate(obj1_1D_data[:-1]):
-                    plots.append(
-                        {
-                            "id": f"objective_1_{i}",
-                            "plot": json_tricks.dumps({"data": dim_data}),
-                        }
-                    )
-                plots.append(
-                    {
-                        "id": f"objective_1_{len(obj1_1D_data) - 1}",
-                        "plot": json_tricks.dumps(
-                            {
-                                "histogram": {
-                                    "mean": float(numpy.ravel(histogram_entry[0])[0]),
-                                    "std": float(numpy.ravel(histogram_entry[1])[0]),
-                                }
-                            }
-                        ),
-                    }
+                emit_json_single_plots(
+                    plots,
+                    result=result[0],
+                    prefix="objective_1",
+                    selected_point=selected_point,
                 )
-
-                obj2_1D_data = _get_brownie_bee_1d_plot_safe(result[1], x_eval=selected_point)
-                histogram_entry2 = obj2_1D_data[-1]
-                for i, dim_data in enumerate(obj2_1D_data[:-1]):
-                    plots.append(
-                        {
-                            "id": f"objective_2_{i}",
-                            "plot": json_tricks.dumps({"data": dim_data}),
-                        }
-                    )
-                plots.append(
-                    {
-                        "id": f"objective_2_{len(obj2_1D_data) - 1}",
-                        "plot": json_tricks.dumps(
-                            {
-                                "histogram": {
-                                    "mean": float(numpy.ravel(histogram_entry2[0])[0]),
-                                    "std": float(numpy.ravel(histogram_entry2[1])[0]),
-                                }
-                            }
-                        ),
-                    }
+                emit_json_single_plots(
+                    plots,
+                    result=result[1],
+                    prefix="objective_2",
+                    selected_point=selected_point,
                 )
 
     if pickle_model:
