@@ -2,7 +2,10 @@
 
 This module will verify tokens provided bt a Keycloak OpenID server
 """
+import logging  # noqa: F401 – used by Task 4 (_LOG)
 import os
+import secrets
+
 from keycloak import KeycloakOpenID
 
 AUTH_API_KEY = os.getenv("AUTH_API_KEY", "none")
@@ -41,15 +44,22 @@ def token_info(access_token) -> dict:
     return None
 
 
-def apikey_handler(access_token) -> dict:
-    """Verify API key based on environment variable
+def apikey_handler(access_token: str) -> dict | None:
+    """Verify the API key passed by the client.
 
     Returns
     -------
     dict
-        a dictionary containing sub and scope
-        None in case of invalid token
+        ``{"scope": []}`` if the supplied key matches the configured
+        ``AUTH_API_KEY``.
+    None
+        If the key is wrong, or if no static-key auth is configured.
     """
-    if not AUTH_SERVER and AUTH_API_KEY == access_token:
+    if AUTH_SERVER:
+        # OIDC is configured; static-key path is disabled.
+        return None
+    expected = AUTH_API_KEY.encode("utf-8")
+    provided = (access_token or "").encode("utf-8")
+    if secrets.compare_digest(expected, provided):
         return {"scope": []}
     return None
