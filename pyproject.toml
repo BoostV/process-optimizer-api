@@ -7,7 +7,7 @@ name = "process-optimizer-api"
 version = "1.0.0"
 description = "REST based API for ProcessOptimizer"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.13"
 license = { text = "MIT" }
 authors = [{ name = "BoostV" }]
 classifiers = [
@@ -15,9 +15,7 @@ classifiers = [
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.13",
 ]
 
 dependencies = [
@@ -35,7 +33,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest==8.3.3", "pytest-watch==4.2.0"]
+dev = ["pytest==8.3.3", "pytest-watch==4.2.0", "flake8>=7"]
 
 [project.urls]
 Homepage = "https://github.com/BoostV/process-optimizer-api"
