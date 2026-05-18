@@ -730,3 +730,31 @@ def test_equivalence_with_and_without_pickled_multi_objective():
         assert plots_no_pickle[plot_id] == plots_with_pickle[plot_id], (
             f"divergence on plot {plot_id}"
         )
+
+
+def test_pickled_fingerprint_mismatch_falls_through(caplog):
+    """A pickled produced from one data set is ignored when data changes."""
+    import logging as _logging
+
+    seed = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"includeModel": "true"},
+    })
+    pickled_value = seed["result"]["pickled"]
+    assert len(pickled_value) > 0
+
+    altered_data = sampleData + [{"xi": [100, 100, 100, "Mus"], "yi": [0.5]}]
+
+    with caplog.at_level(_logging.WARNING, logger="optimizerapi.pickled_state"):
+        result = optimizer.run(body={
+            "data": altered_data,
+            "optimizerConfig": sampleConfig,
+            "extras": {"includeModel": "true", "pickled": pickled_value},
+        })
+
+    assert result["result"]["extras"]["pickledUsed"] is False
+    assert any("fingerprint_mismatch" in r.message for r in caplog.records)
+    # Response still valid — server fell through to a full run.
+    assert "next" in result["result"]
+    assert len(result["result"]["next"]) > 0
