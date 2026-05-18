@@ -147,8 +147,8 @@ def run(body: "RequestBody") -> dict:
     """
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
-    constraints = cfg["constraints"] if "constraints" in cfg else []
-    extras = body["extras"] if "extras" in body else {}
+    constraints = cfg.get("constraints", [])
+    extras = body.get("extras", {})
     use_actual_measurement_histogram = json.loads(
         extras.get("useActualMeasurementHistogram", "true").lower()
     )
@@ -158,7 +158,7 @@ def run(body: "RequestBody") -> dict:
                 convert_number_type(x["from"], x["type"]),
                 convert_number_type(x["to"], x["type"]),
             )
-            if (x["type"] == "discrete" or x["type"] == "continuous")
+            if x["type"] in ("discrete", "continuous")
             else tuple(x["categories"])
         )
         for x in cfg["space"]
@@ -420,7 +420,7 @@ def round_to_length_scales(x, space):
         The space of the optimizer. Contains information about each dimension
         of the space
     """
-    for dim, i in zip(space.dimensions, range(len(space.dimensions))):
+    for i, dim in enumerate(space.dimensions):
         # Checking if dimension is real. Else do nothing
         if isinstance(dim, Real):
             length = dim.high - dim.low

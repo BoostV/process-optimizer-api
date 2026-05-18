@@ -1,6 +1,7 @@
-"""Authenitcation module
+"""Authentication module.
 
-This module will verify tokens provided bt a Keycloak OpenID server
+Verifies bearer tokens issued by a Keycloak OpenID server, and the
+static API key provided via ``AUTH_API_KEY``.
 """
 import logging
 import os
