@@ -1,0 +1,11 @@
+curl -S 'http://localhost:9090/v1.0/optimizer?apikey=none' \
+-X 'POST' \
+-H 'Content-Type: application/json' \
+-H 'Origin: http://localhost:5173' \
+-H 'Referer: http://localhost:5173/' \
+-H 'Accept: */*' \
+-H 'Sec-Fetch-Dest: empty' \
+-H 'Sec-Fetch-Mode: cors' \
+-H 'Sec-Fetch-Site: same-site' \
+-H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Safari/605.1.15' \
+--data-raw '{"extras":{"objectivePars":"expected_minimum","experimentSuggestionCount":5},"data":[{"xi":[10,69,36,"red"],"yi":[-2.5,-12]},{"xi":[70,103,324,"blue"],"yi":[-1.6,-50]},{"xi":[90,1,108,"green"],"yi":[-2.8,-5]},{"xi":[50,35,180,"red"],"yi":[-3.8,-10]},{"xi":[30,-33,252,"blue"],"yi":[-3.6,-40]}],"optimizerConfig":{"baseEstimator":"GP","acqFunc":"EI","initialPoints":5,"kappa":1.96,"xi":1.2,"space":[{"type":"discrete","name":"water","from":0,"to":100},{"type":"discrete","name":"temperature","from":-50,"to":120},{"type":"continuous","name":"angle","from":0,"to":360},{"type":"category","name":"color","categories":["red","green","blue"]}],"constraints":[]}}'

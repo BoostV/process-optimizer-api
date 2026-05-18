@@ -10,3 +10,4 @@ dist/
 build/
 *.egg
 .sisyphus
+/.claude/settings.local.json

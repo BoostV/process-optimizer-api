@@ -326,7 +326,7 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 "pareto" in graphs_to_return or "single" in graphs_to_return
             ):
                 front_x_data, front_y_data, obj1_error, obj2_error = (
-                    get_Brownie_Bee_Pareto(optimizer)
+                    get_Brownie_Bee_Pareto(optimizer, n_points=200)
                 )
                 best_idx = get_Pareto_front_compromise(front_y_data)
                 if "pareto" in graphs_to_return:
