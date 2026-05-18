@@ -20,7 +20,7 @@ from ProcessOptimizer import Optimizer, expected_minimum
 from ProcessOptimizer.space import Real
 from ProcessOptimizer.space.constraints import SumEquals
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from .securepickle import get_crypto
 from .pickled_state import compute_fingerprint, pack, unpack_if_valid
@@ -104,7 +104,7 @@ def _compute_next_experiments(
         next_exp = optimizer.ask(n_points=n_points)
     if next_exp and not any(isinstance(x, list) for x in next_exp):
         next_exp = [next_exp]
-    return round_to_length_scales(next_exp, optimizer.space)
+    return cast(list[list[str | float]], round_to_length_scales(next_exp, optimizer.space))
 
 
 def _flatten_expected_minima(models: list[dict]) -> None:
@@ -208,7 +208,8 @@ def run(body: "RequestBody") -> dict:
             "Yi": Yi,
             "extras": extras,
         }
-        return json.loads(json_tricks.dumps(response))
+        # json_tricks roundtrip drops NumPy types and produces a plain dict
+        return cast(dict[Any, Any], json.loads(json_tricks.dumps(response)))
 
     if constraints is not None and len(constraints) > 0:
         optimizer = Optimizer(
@@ -249,7 +250,8 @@ def run(body: "RequestBody") -> dict:
 
     # It is necesarry to convert response to a json string and then back to
     # dictionary because NumPy types are not serializable by default
-    return json.loads(json_tricks.dumps(response))
+    # json_tricks roundtrip drops NumPy types and produces a plain dict
+    return cast(dict[Any, Any], json.loads(json_tricks.dumps(response)))
 
 
 def convert_number_type(value, num_type):
@@ -303,9 +305,9 @@ def process_result(
                 model representation etc.}
         }
     """
-    result_details = {"next": [], "models": [], "pickled": "", "extras": {}}
+    result_details: dict[str, Any] = {"next": [], "models": [], "pickled": "", "extras": {}}
     plots: "list[Plot]" = []
-    response = {"plots": plots, "result": result_details}
+    response: dict[str, Any] = {"plots": plots, "result": result_details}
     # GraphFormat should, at the moment, be either "png" or "none". Default (legacy)
     # behavior is "png", so the API returns png images. Any other input is interpreted
     # as "None" at the moment.
@@ -390,7 +392,7 @@ def process_model(model, optimizer):
     dict
         a dictionary containing the model specific results.
     """
-    result_details = {"expected_minimum": [], "extras": {}}
+    result_details: dict[str, Any] = {"expected_minimum": [], "extras": {}}
     minimum = expected_minimum(model)
     result_details["expected_minimum"] = [
         round_to_length_scales(minimum[0], optimizer.space),
@@ -399,7 +401,7 @@ def process_model(model, optimizer):
     return result_details
 
 
-def round_to_length_scales(x, space):
+def round_to_length_scales(x: Any, space: Any) -> Any:
     """Rounds a suggested experiment to to the length scales of each dimension
 
     For each dimension the length of the dimension is calculated and the

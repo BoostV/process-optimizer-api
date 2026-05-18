@@ -6,6 +6,7 @@ static API key provided via ``AUTH_API_KEY``.
 import logging
 import os
 import secrets
+from typing import Any, cast
 
 from keycloak import KeycloakOpenID
 
@@ -41,7 +42,8 @@ def token_info(access_token: str) -> dict | None:
     """
     if not AUTH_SERVER:
         return {"scope": []}
-    token_data = keycloak_openid.introspect(access_token)
+    # keycloak_openid.introspect returns Any; narrow to dict so callers stay typed
+    token_data: dict[Any, Any] = cast(dict[Any, Any], keycloak_openid.introspect(access_token))
     if token_data.get("active"):
         _LOG.debug("token accepted")
         return token_data
