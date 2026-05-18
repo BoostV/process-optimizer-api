@@ -109,7 +109,8 @@ def run(body) -> dict:
         include_model_str = str(extras.get("includeModel", "true")).lower()
         if include_model_str == "false":
             logging.getLogger(__name__).warning(
-                "includeModel=false with extras.pickled — next call will pay the full cost"
+                "includeModel=false with extras.pickled present — if the cache hint is used, "
+                "the next call will not have one to reuse"
             )
     cached = unpack_if_valid(
         pickled_input, expected_fingerprint=request_fingerprint, crypto=get_crypto()
