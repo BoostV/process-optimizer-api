@@ -688,7 +688,7 @@ def test_selectedPoint_with_no_data():
 
 
 def test_equivalence_with_and_without_pickled_multi_objective():
-    """Same selectedPoint, same data: pickled vs no-pickled produce identical single plots."""
+    """Same selectedPoint, same data: pickled vs no-pickled produce identical plots (all ids)."""
     base_body = {
         "data": sampleMultiObjective5DimData,
         "optimizerConfig": sampleMultiObjective5DimConfig,
