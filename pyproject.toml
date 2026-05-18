@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest==8.3.3", "pytest-watch==4.2.0", "flake8>=7"]
+dev = ["pytest==8.3.3", "pytest-watch==4.2.0", "flake8>=7", "mypy>=1.13"]
 
 [project.urls]
 Homepage = "https://github.com/BoostV/process-optimizer-api"
@@ -48,3 +48,16 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+
+[tool.mypy]
+files = ["optimizerapi"]
+python_version = "3.13"
+strict = false
+# Start permissive; we tighten as Phase 4 lands.
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+disallow_any_unimported = false
+check_untyped_defs = true
+# Third-party libraries that don't ship type stubs.
+ignore_missing_imports = true
