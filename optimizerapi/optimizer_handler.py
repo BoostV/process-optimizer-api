@@ -10,7 +10,6 @@ import json
 import logging
 import os
 import time
-import traceback
 from typing import TYPE_CHECKING
 
 from rq import Queue
@@ -23,6 +22,33 @@ from .optimizer import run as handle_run
 
 if TYPE_CHECKING:
     from .types import RequestBody, ResponseEnvelope
+
+
+def _parse_env_bool(name: str, default: bool = False) -> bool:
+    """Parse a boolean-ish env var.
+
+    Accepts "true", "1", "yes" (case-insensitive) as True.
+    Anything else — including unset or "false" — is False.
+    """
+    raw = os.environ.get(name, "").strip().lower()
+    if not raw:
+        return default
+    return raw in ("true", "1", "yes")
+
+
+def _resolve_disconnect_check():
+    """Return a callable that reports whether the client has disconnected.
+
+    Outside of a request context (e.g. unit tests) or when running under
+    a server that doesn't expose ``waitress.client_disconnected``, this
+    returns a no-op that always says "still connected".
+    """
+    try:
+        env = connexion.request.environ
+    except RuntimeError:
+        return lambda: False
+    return env.get("waitress.client_disconnected", lambda: False)
+
 
 _LOG = logging.getLogger(__name__)
 
@@ -49,20 +75,9 @@ def run(body: "RequestBody") -> "ResponseEnvelope | tuple[dict[str, str], int]":
     dict
         a JSON encodable dictionary representation of the result.
     """
-    try:
-        if "waitress.client_disconnected" in connexion.request.environ:
-            disconnect_check = connexion.request.environ["waitress.client_disconnected"]
-        else:
+    disconnect_check = _resolve_disconnect_check()
 
-            def disconnect_check():
-                return False
-
-    except RuntimeError:
-
-        def disconnect_check():
-            return False
-
-    if "USE_WORKER" in os.environ and os.environ["USE_WORKER"]:
+    if _parse_env_bool("USE_WORKER"):
         body_hash = hashlib.new("sha256")
         body_hash.update(json.dumps(body).encode())
         job_id = body_hash.hexdigest()
@@ -93,18 +108,18 @@ def run(body: "RequestBody") -> "ResponseEnvelope | tuple[dict[str, str], int]":
     return do_run_work(body)
 
 
-def do_run_work(body: "RequestBody") -> "ResponseEnvelope | tuple[dict[str, str], int]":
-    """Handle the run request."""
+def do_run_work(body: "RequestBody") -> "ResponseEnvelope":
+    """Handle the run request.
+
+    On error we return a Connexion ``problem`` response, which serialises
+    to the OpenAPI-declared 400 / 500 response shape.
+    """
     try:
         # Phase 4 narrows optimizer.run return type to ResponseEnvelope
         return handle_run(body)  # type: ignore[return-value]
-    except IOError as err:
-        return ({"message": "I/O error", "error": str(err)}, 400)
-    except TypeError as err:
-        return ({"message": "Type error", "error": str(err)}, 400)
-    except ValueError as err:
-        return ({"message": "Validation error", "error": str(err)}, 400)
+    except (IOError, TypeError, ValueError) as err:
+        _LOG.warning("client error: %s", err)
+        return connexion.problem(400, "Bad request", str(err))  # type: ignore[no-any-return]
     except Exception as err:
-        # Log unknown exceptions to support debugging
-        traceback.print_exc()
-        return ({"message": "Unknown error", "error": str(err)}, 500)
+        _LOG.exception("unexpected error during optimizer run")
+        return connexion.problem(500, "Internal server error", str(err))  # type: ignore[no-any-return]
