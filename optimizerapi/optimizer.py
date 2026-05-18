@@ -310,65 +310,58 @@ def process_result(
     # behavior is "png", so the API returns png images. Any other input is interpreted
     # as "None" at the moment.
     parsed = _parse_extras(extras, logging.getLogger(__name__))
-    graph_format = parsed.graph_format
-    max_quality = parsed.max_quality
-    graphs_to_return = parsed.graphs_to_return
-    objective_pars = parsed.objective_pars
-    pickle_model = parsed.include_model
-    selected_point = parsed.selected_point
-    experiment_suggestion_count = parsed.experiment_suggestion_count
 
     result_details["next"] = _compute_next_experiments(
-        optimizer, cfg, experiment_suggestion_count
+        optimizer, cfg, parsed.experiment_suggestion_count
     )
 
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
         result_details["models"] = [process_model(model, optimizer) for model in result]
-        if graph_format == "png":
+        if parsed.graph_format == "png":
             emit_png_plots(
                 plots,
                 result=result,
                 dimensions=dimensions,
-                graphs=graphs_to_return,
-                max_quality=max_quality,
-                objective_pars=objective_pars,
+                graphs=parsed.graphs_to_return,
+                max_quality=parsed.max_quality,
+                objective_pars=parsed.objective_pars,
             )
             if optimizer.n_objectives == 1:
                 _set_expected_minimum(result_details, result[0], optimizer.space)
-        elif graph_format == "json":
+        elif parsed.graph_format == "json":
             for idx, model in enumerate(result):
-                if "single" in graphs_to_return and optimizer.n_objectives != 2:
+                if "single" in parsed.graphs_to_return and optimizer.n_objectives != 2:
                     emit_json_single_plots(
                         plots,
                         result=result[idx],
                         prefix=f"single_{idx}",
-                        selected_point=selected_point,
+                        selected_point=parsed.selected_point,
                     )
             # convergence and objective plots are PNG-only; nothing to emit here.
 
             if optimizer.n_objectives == 1:
                 _set_expected_minimum(result_details, result[0], optimizer.space)
 
-            if optimizer.n_objectives == 2 and "pareto" in graphs_to_return:
+            if optimizer.n_objectives == 2 and "pareto" in parsed.graphs_to_return:
                 emit_pareto_data(plots, optimizer)
 
-            if optimizer.n_objectives == 2 and "single" in graphs_to_return:
+            if optimizer.n_objectives == 2 and "single" in parsed.graphs_to_return:
                 emit_json_single_plots(
                     plots,
                     result=result[0],
                     prefix="objective_1",
-                    selected_point=selected_point,
+                    selected_point=parsed.selected_point,
                 )
                 emit_json_single_plots(
                     plots,
                     result=result[1],
                     prefix="objective_2",
-                    selected_point=selected_point,
+                    selected_point=parsed.selected_point,
                 )
 
-    if pickle_model:
+    if parsed.include_model:
         result_details["pickled"] = pack(
             result=result,
             next_points=result_details["next"],
