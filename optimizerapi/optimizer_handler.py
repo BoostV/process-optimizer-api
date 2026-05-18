@@ -11,6 +11,7 @@ import logging
 import os
 import time
 import traceback
+from typing import TYPE_CHECKING
 
 from rq import Queue
 from rq.job import Job
@@ -19,6 +20,9 @@ from rq.command import send_stop_job_command
 from redis import Redis
 import connexion
 from .optimizer import run as handle_run
+
+if TYPE_CHECKING:
+    from .types import RequestBody, ResponseEnvelope
 
 _LOG = logging.getLogger(__name__)
 
@@ -37,7 +41,7 @@ else:
 queue = Queue(connection=redis)
 
 
-def run(body) -> dict:
+def run(body: "RequestBody") -> "ResponseEnvelope | tuple[dict[str, str], int]":
     """Executes the ProcessOptimizer
 
     Returns
@@ -83,16 +87,17 @@ def run(body) -> dict:
                     job.delete()
                 except Exception:
                     pass
-                return {}
+                return {}  # type: ignore[return-value]  # empty sentinel on client disconnect
             time.sleep(0.2)
-        return job.return_value()
+        return job.return_value()  # type: ignore[return-value]  # RQ returns Any; narrowed in Phase 4
     return do_run_work(body)
 
 
-def do_run_work(body) -> dict:
-    """ "Handle the run request"""
+def do_run_work(body: "RequestBody") -> "ResponseEnvelope | tuple[dict[str, str], int]":
+    """Handle the run request."""
     try:
-        return handle_run(body)
+        # Phase 4 narrows optimizer.run return type to ResponseEnvelope
+        return handle_run(body)  # type: ignore[return-value]
     except IOError as err:
         return ({"message": "I/O error", "error": str(err)}, 400)
     except TypeError as err:
