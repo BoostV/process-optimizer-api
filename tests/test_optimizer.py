@@ -398,6 +398,26 @@ def test_selectedPoint_multi_objective_json():
     assert plot_data2["data"][3] == selected_point[0]
 
 
+def test_selectedPoint_with_png_logs_warning_and_is_ignored(caplog):
+    import logging as _logging
+
+    with caplog.at_level(_logging.WARNING, logger="optimizerapi.optimizer"):
+        result = optimizer.run(body={
+            "data": sampleData,
+            "optimizerConfig": sampleConfig,
+            "extras": {
+                "graphFormat": "png",
+                "selectedPoint": [651, 56, 722, "Ræv"],
+                "includeModel": "false",
+            },
+        })
+
+    assert any("selectedPoint ignored on png path" in r.message for r in caplog.records)
+    # No crash, response is valid.
+    assert "plots" in result
+    assert "next" in result["result"]
+
+
 def test_no_selectedPoint_preserves_default():
     result = optimizer.run(body={
         "data": sampleData,

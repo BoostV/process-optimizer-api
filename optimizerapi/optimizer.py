@@ -8,6 +8,7 @@ import base64
 import importlib.metadata
 import io
 import json
+import logging
 import os
 import platform
 import subprocess
@@ -224,6 +225,10 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space,
 
     pickle_model = json.loads(extras.get("includeModel", "true").lower())
     selected_point = extras.get("selectedPoint")
+    if selected_point is not None and graph_format != "json":
+        logging.getLogger(__name__).warning(
+            "selectedPoint ignored on png path (graphFormat=%s)", graph_format
+        )
 
     # In the following section details that should be reported to
     # clients should go into the "resultDetails" dictionary and plots
