@@ -10,6 +10,9 @@ from keycloak import KeycloakOpenID
 
 AUTH_API_KEY = os.getenv("AUTH_API_KEY", "none")
 AUTH_SERVER = os.getenv("AUTH_SERVER", None)
+FLASK_ENV = os.getenv("FLASK_ENV", "development")
+
+_DEFAULT_APIKEY = "none"  # sentinel: matches AUTH_API_KEY default; never accept in production
 AUTH_CLIENT_ID = os.getenv("AUTH_CLIENT_ID", None)
 AUTH_CLIENT_SECRET = os.getenv("AUTH_CLIENT_SECRET", None)
 AUTH_REALM_NAME = os.getenv("AUTH_REALM_NAME", None)
@@ -54,10 +57,14 @@ def apikey_handler(access_token: str) -> dict | None:
         ``{"scope": []}`` if the supplied key matches the configured
         ``AUTH_API_KEY``.
     None
-        If the key is wrong, or if no static-key auth is configured.
+        If the key is wrong, OIDC is configured (OIDC handles this path),
+        or the operator has not configured a real key in production.
     """
     if AUTH_SERVER:
-        # OIDC is configured; static-key path is disabled.
+        return None
+    # In production we refuse the unconfigured default value, even if it
+    # technically matches the request — operators should set a real key.
+    if FLASK_ENV == "production" and AUTH_API_KEY == _DEFAULT_APIKEY:
         return None
     expected = AUTH_API_KEY.encode("utf-8")
     provided = (access_token or "").encode("utf-8")

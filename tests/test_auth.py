@@ -31,3 +31,25 @@ def test_apikey_handler_uses_constant_time_comparison():
          patch.object(secrets, "compare_digest", wraps=secrets.compare_digest) as mock_cmp:
         auth.apikey_handler("secret-key")
     assert mock_cmp.called, "apikey_handler must use secrets.compare_digest"
+
+
+def test_default_apikey_value_is_rejected_in_production_mode():
+    """When AUTH_API_KEY is the default 'none' and FLASK_ENV is 'production',
+    even matching the default value must be rejected."""
+    with patch("optimizerapi.auth.AUTH_API_KEY", "none"), \
+         patch("optimizerapi.auth.AUTH_SERVER", None), \
+         patch("optimizerapi.auth.FLASK_ENV", "production"):
+        from optimizerapi import auth
+        result = auth.apikey_handler("none")
+    assert result is None
+
+
+def test_default_apikey_value_is_accepted_in_development_mode():
+    """In development mode (FLASK_ENV != 'production'), the legacy
+    behaviour of accepting AUTH_API_KEY='none' is preserved for ergonomics."""
+    with patch("optimizerapi.auth.AUTH_API_KEY", "none"), \
+         patch("optimizerapi.auth.AUTH_SERVER", None), \
+         patch("optimizerapi.auth.FLASK_ENV", "development"):
+        from optimizerapi import auth
+        result = auth.apikey_handler("none")
+    assert result == {"scope": []}
