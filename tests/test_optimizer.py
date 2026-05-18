@@ -482,47 +482,56 @@ def test_pickled_consumption_skips_training():
     assert len(second_result["result"]["next"]) > 0
 
 
-def test_old_format_pickled_falls_back():
-    """Test that old-format pickled (list) causes fallback — server returns valid response"""
+def test_old_format_pickled_falls_back(caplog):
+    """A pickled payload that decrypts but isn't the new dict shape falls through."""
+    import logging as _logging
+
     old_format_data = ["some", "old", "data"]
     old_pickled = pickleToString(old_format_data, get_crypto())
-    result = optimizer.run(body={
-        "data": sampleData,
-        "optimizerConfig": sampleConfig,
-        "extras": {"pickled": old_pickled, "includeModel": "false"},
-    })
+
+    with caplog.at_level(_logging.WARNING, logger="optimizerapi.pickled_state"):
+        result = optimizer.run(body={
+            "data": sampleData,
+            "optimizerConfig": sampleConfig,
+            "extras": {"pickled": old_pickled, "includeModel": "false", "graphFormat": "json"},
+        })
+
     assert "result" in result
-    assert "next" in result["result"]
     assert len(result["result"]["next"]) > 0
+    assert result["result"]["extras"]["pickledUsed"] is False
+    assert any("bad_structure" in r.message for r in caplog.records)
 
 
-def test_invalid_pickled_falls_back():
-    """Test that invalid pickled string causes silent fallback to full training run"""
-    result = optimizer.run(body={
-        "data": sampleData,
-        "optimizerConfig": sampleConfig,
-        "extras": {"pickled": "this_is_not_valid_pickled_data_at_all", "includeModel": "false"},
-    })
+def test_invalid_pickled_falls_back(caplog):
+    """An undecodable pickled string falls through to a full run."""
+    import logging as _logging
+
+    with caplog.at_level(_logging.WARNING, logger="optimizerapi.pickled_state"):
+        result = optimizer.run(body={
+            "data": sampleData,
+            "optimizerConfig": sampleConfig,
+            "extras": {"pickled": "this_is_not_valid_pickled_data_at_all", "includeModel": "false", "graphFormat": "json"},
+        })
+
     assert "result" in result
-    assert "next" in result["result"]
     assert len(result["result"]["next"]) > 0
+    assert result["result"]["extras"]["pickledUsed"] is False
+    assert any("decrypt_failed" in r.message for r in caplog.records)
 
 
 def test_pickled_response_is_dict_format():
-    """Test that pickled response is a dict with keys result, next, optimizer"""
+    """Test that pickled response is a dict with keys fingerprint, result, next, optimizer"""
     result = optimizer.run(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
-        "extras": {"includeModel": "true"},
+        "extras": {"includeModel": "true", "graphFormat": "json"},
     })
     pickled_value = result["result"]["pickled"]
     assert len(pickled_value) > 0
     unpickled = unpickleFromString(pickled_value, get_crypto())
-    # Currently pickled is a list - this should FAIL
     assert isinstance(unpickled, dict), f"Expected dict, got {type(unpickled)}"
-    assert "result" in unpickled
-    assert "next" in unpickled
-    assert "optimizer" in unpickled
+    assert set(unpickled.keys()) >= {"fingerprint", "result", "next", "optimizer"}
+    assert isinstance(unpickled["fingerprint"], str) and len(unpickled["fingerprint"]) == 64
 
 
 def test_pickled_round_trip():
