@@ -1,14 +1,35 @@
 """
 Main server
 """
+import logging
 import os
 import re
+
 import connexion
-from waitress import serve
 from flask_cors import CORS
+from waitress import serve
+
 from .securepickle import get_crypto
 
+_LOG = logging.getLogger(__name__)
+
+
+def _configure_logging() -> None:
+    """Configure root logging once, before any handler is dispatched.
+
+    Level defaults to INFO. Override with the LOG_LEVEL environment
+    variable (e.g. LOG_LEVEL=DEBUG for local debugging).
+    """
+    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
+
 if __name__ == "__main__":
+    _configure_logging()
     # Initialize crypto
     get_crypto()
     app = connexion.FlaskApp(
@@ -46,11 +67,11 @@ if __name__ == "__main__":
                 # what we want to support.
                 origins=re.compile(cors_origin),
             )
-            print("CORS: " + cors_origin)
+            _LOG.info("CORS: %s", cors_origin)
         except re.error:
-            print("CORS: failed - the regex might be malformed.")
+            _LOG.warning("CORS: failed - the regex might be malformed.")
     else:
-        print("CORS: disabled")
+        _LOG.info("CORS: disabled")
 
     if development:
         app.run(port=9090)
