@@ -2,7 +2,7 @@
 
 This module will verify tokens provided bt a Keycloak OpenID server
 """
-import logging  # noqa: F401 – used by Task 4 (_LOG)
+import logging
 import os
 import secrets
 
@@ -21,26 +21,27 @@ keycloak_openid = KeycloakOpenID(
     client_secret_key=AUTH_CLIENT_SECRET,
 )
 
+_LOG = logging.getLogger(__name__)
 
-def token_info(access_token) -> dict:
-    """Verify token with authentication server
+
+def token_info(access_token: str) -> dict | None:
+    """Verify a bearer token against the configured Keycloak server.
 
     Returns
     -------
     dict
-        a dictionary containing sub and scope
-        None in case of invalid token
+        Token data from Keycloak introspection when the token is active.
+        If no OIDC server is configured, returns ``{"scope": []}``.
+    None
+        If the server reports the token as inactive.
     """
-    print(access_token)
     if not AUTH_SERVER:
         return {"scope": []}
-    token = access_token
-    token_data = keycloak_openid.introspect(token)
-    if "active" in token_data and token_data["active"]:
-        print("OK")
+    token_data = keycloak_openid.introspect(access_token)
+    if token_data.get("active"):
+        _LOG.debug("token accepted")
         return token_data
-    print("NOT OK")
-    print(token_data)
+    _LOG.warning("token rejected by Keycloak")
     return None
 
 
