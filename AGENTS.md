@@ -15,6 +15,7 @@
 - Run a single test module via `python -m pytest tests/test_optimizer.py`.
 - Run the full test suite with `python -m pytest` (watch mode: `ptw`).
 - Start the dev server with `python -m optimizerapi.server` (see README.md).
+- Type-check locally with `mypy optimizerapi` (matches CI workflow); see `[tool.mypy]` in `pyproject.toml`.
 - Type hints are optional; when adding them, use Python typing and keep function signatures simple.
 - Use Python 3.9+ and `pip install -e .` before running.
 - When adding dependencies, update `pyproject.toml` in the `dependencies` array

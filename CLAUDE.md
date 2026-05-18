@@ -18,6 +18,9 @@ ptw                                                         # watch mode
 # Lint (matches CI)
 flake8 . --max-line-length=127
 
+# Type-check (matches CI)
+mypy optimizerapi
+
 # Run dev server (port 9090, Swagger UI at /v1.0/ui/)
 python -m optimizerapi.server
 
