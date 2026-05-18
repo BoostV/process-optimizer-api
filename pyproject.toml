@@ -27,7 +27,7 @@ dependencies = [
   "ProcessOptimizer[brownie-bee] @ git+https://github.com/novonordisk-research/ProcessOptimizer.git@f1c8637d5eab",
   "json-tricks==3.15.5",
   "jsonschema==4.15.0",
-  "cryptography==3.4.7",
+  "cryptography>=44,<46",
   "waitress==2.1.2",
   "rq==2.0.0",
 ]
