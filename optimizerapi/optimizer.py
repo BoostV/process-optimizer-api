@@ -12,6 +12,7 @@ import logging
 import os
 import platform
 import subprocess
+from dataclasses import dataclass
 from time import strftime
 
 import json_tricks
@@ -69,6 +70,60 @@ def _get_brownie_bee_1d_plot_safe(result, x_eval=None, **kwargs):
         return get_Brownie_Bee_1d_plot(result, x_eval=x_eval, **kwargs)
     finally:
         model.predict = original_predict
+
+
+@dataclass(frozen=True)
+class _ParsedExtras:
+    graph_format: str
+    max_quality: int
+    graphs_to_return: list[str]
+    objective_pars: str
+    include_model: bool
+    selected_point: "list[str | float] | None"
+    experiment_suggestion_count: int
+
+
+def _parse_bool(value: object, default: bool = True) -> bool:
+    """Coerce extras' stringly-typed boolean fields.
+
+    Accepts the literals "true" / "false" (case-insensitive), real bools,
+    and JSON-style ``true``/``false``. Anything else falls back to *default*.
+    """
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    text = str(value).strip().lower()
+    if text in ("true", "1", "yes"):
+        return True
+    if text in ("false", "0", "no"):
+        return False
+    return default
+
+
+def _parse_extras(extras: "Extras", logger: "logging.Logger") -> _ParsedExtras:
+    """Read the request ``extras`` block into a typed view.
+
+    Emits the PNG + selectedPoint warning here so callers don't need to
+    duplicate the check.
+    """
+    graph_format = extras.get("graphFormat", "png")
+    selected_point = extras.get("selectedPoint")
+    if selected_point is not None and graph_format != "json":
+        logger.warning(
+            "selectedPoint ignored on png path (graphFormat=%s)", graph_format
+        )
+    return _ParsedExtras(
+        graph_format=graph_format,
+        max_quality=int(extras.get("maxQuality", 5)),
+        graphs_to_return=list(extras.get(
+            "graphs", ["objective", "convergence", "pareto", "single"]
+        )),
+        objective_pars=extras.get("objectivePars", "result"),
+        include_model=_parse_bool(extras.get("includeModel", "true")),
+        selected_point=selected_point,
+        experiment_suggestion_count=int(extras.get("experimentSuggestionCount", 1)),
+    )
 
 
 def run(body: "RequestBody") -> dict:
@@ -243,27 +298,14 @@ def process_result(
     # GraphFormat should, at the moment, be either "png" or "none". Default (legacy)
     # behavior is "png", so the API returns png images. Any other input is interpreted
     # as "None" at the moment.
-    graph_format = extras.get("graphFormat", "png")
-    max_quality = int(extras.get("maxQuality", "5"))
-    graphs_to_return = extras.get(
-        "graphs", ["objective", "convergence", "pareto", "single"]
-    )
-
-    objective_pars = extras.get("objectivePars", "result")
-
-    pickle_model = json.loads(extras.get("includeModel", "true").lower())
-    selected_point = extras.get("selectedPoint")
-    if selected_point is not None and graph_format != "json":
-        logging.getLogger(__name__).warning(
-            "selectedPoint ignored on png path (graphFormat=%s)", graph_format
-        )
-
-    # In the following section details that should be reported to
-    # clients should go into the "resultDetails" dictionary and plots
-    # go into the "plots" list (this is handled by calling the "addPlot" function)
-    experiment_suggestion_count = 1
-    if "experimentSuggestionCount" in extras:
-        experiment_suggestion_count = extras["experimentSuggestionCount"]
+    parsed = _parse_extras(extras, logging.getLogger(__name__))
+    graph_format = parsed.graph_format
+    max_quality = parsed.max_quality
+    graphs_to_return = parsed.graphs_to_return
+    objective_pars = parsed.objective_pars
+    pickle_model = parsed.include_model
+    selected_point = parsed.selected_point
+    experiment_suggestion_count = parsed.experiment_suggestion_count
 
     if "constraints" in cfg and len(cfg["constraints"]) > 0:
         next_exp = optimizer.ask(
