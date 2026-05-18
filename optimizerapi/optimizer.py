@@ -29,8 +29,13 @@ from ProcessOptimizer.utils.utils import get_Pareto_front_compromise
 from ProcessOptimizer.space import Real
 from ProcessOptimizer.space.constraints import SumEquals
 
+from typing import TYPE_CHECKING, Any
+
 from .securepickle import get_crypto
 from .pickled_state import compute_fingerprint, pack, unpack_if_valid
+
+if TYPE_CHECKING:
+    from .types import Extras, OptimizerConfig, RequestBody
 
 numpy.random.seed(42)
 plt.switch_backend("Agg")
@@ -66,8 +71,14 @@ def _get_brownie_bee_1d_plot_safe(result, x_eval=None, **kwargs):
         model.predict = original_predict
 
 
-def run(body) -> dict:
-    """ "Handle the run request"""
+def run(body: "RequestBody") -> dict:
+    """Handle the run request.
+
+    Returns the response envelope as a plain ``dict`` — the json_tricks
+    round-trip at the bottom of the function drops NumPy types, which is
+    why we cannot return ``ResponseEnvelope`` directly without an
+    explicit cast.
+    """
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
     constraints = cfg["constraints"] if "constraints" in cfg else []
@@ -182,8 +193,18 @@ def convert_number_type(value, num_type):
     return float(value)
 
 
-def process_result(result, optimizer, dimensions, cfg, extras, data, space,
-                   *, request_fingerprint, pickled_used):
+def process_result(
+    result: Any,
+    optimizer: Any,
+    dimensions: list[str],
+    cfg: "OptimizerConfig",
+    extras: "Extras",
+    data: list[tuple[list[str | float], list[float]]],
+    space: list,
+    *,
+    request_fingerprint: str,
+    pickled_used: bool,
+) -> dict:
     """Extracts results from the OptimizerResult.
 
     Parameters
