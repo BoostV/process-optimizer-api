@@ -1,6 +1,9 @@
 """Tests for pickled_state: fingerprint + pack/unpack helpers."""
 
-from optimizerapi.pickled_state import compute_fingerprint
+import logging
+
+from optimizerapi.pickled_state import compute_fingerprint, pack, unpack_if_valid
+from optimizerapi.securepickle import get_crypto, pickleToString
 
 
 SAMPLE_DATA = [
@@ -57,12 +60,6 @@ def test_fingerprint_changes_when_config_changes():
     assert compute_fingerprint(SAMPLE_DATA, SAMPLE_CONFIG) != compute_fingerprint(
         SAMPLE_DATA, other_config
     )
-
-
-import logging  # noqa: E402
-
-from optimizerapi.pickled_state import pack, unpack_if_valid  # noqa: E402
-from optimizerapi.securepickle import get_crypto, pickleToString  # noqa: E402
 
 
 def _crypto():
