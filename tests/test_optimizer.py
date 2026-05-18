@@ -648,6 +648,25 @@ def test_pickled_consumption_with_include_model_false():
     assert len(run2_result["plots"]) > 0
 
 
+def test_pickled_used_flag_round_trip():
+    """First run has pickledUsed=False; second run with returned pickled has pickledUsed=True."""
+    first = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"includeModel": "true"},
+    })
+    assert first["result"]["extras"]["pickledUsed"] is False
+    pickled_value = first["result"]["pickled"]
+    assert len(pickled_value) > 0
+
+    second = optimizer.run(body={
+        "data": sampleData,
+        "optimizerConfig": sampleConfig,
+        "extras": {"includeModel": "true", "pickled": pickled_value},
+    })
+    assert second["result"]["extras"]["pickledUsed"] is True
+
+
 def test_selectedPoint_with_no_data():
     """Integration test: selectedPoint with empty data — server handles gracefully"""
     selected_point = [50, 833, 150, 60, "Whipped cream"]

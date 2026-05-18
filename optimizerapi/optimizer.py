@@ -8,7 +8,6 @@ import base64
 import importlib.metadata
 import io
 import json
-import logging
 import os
 import platform
 import subprocess
@@ -29,7 +28,8 @@ from ProcessOptimizer.utils.utils import get_Pareto_front_compromise
 from ProcessOptimizer.space import Real
 from ProcessOptimizer.space.constraints import SumEquals
 
-from .securepickle import get_crypto, pickleToString, unpickleFromString
+from .securepickle import get_crypto
+from .pickled_state import compute_fingerprint, pack, unpack_if_valid
 
 numpy.random.seed(42)
 plt.switch_backend("Agg")
@@ -102,31 +102,28 @@ def run(body) -> dict:
     if len(Yi) > 0:
         n_objectives = len(Yi[0])
 
-    # Pickled consumption: attempt to skip training if extras.pickled is provided
+    request_fingerprint = compute_fingerprint(body["data"], cfg)
     pickled_input = extras.get("pickled", "")
-    if pickled_input:
-        try:
-            unpickled = unpickleFromString(pickled_input, get_crypto())
-            if isinstance(unpickled, dict) and "result" in unpickled and "optimizer" in unpickled:
-                result = unpickled["result"]
-                optimizer = unpickled["optimizer"]
-                response = process_result(result, optimizer, dimensions, cfg, extras, data, space)
-                response["result"]["extras"]["parameters"] = {
-                    "dimensions": dimensions,
-                    "space": space,
-                    "hyperparams": hyperparams,
-                    "Xi": Xi,
-                    "Yi": Yi,
-                    "extras": extras,
-                }
-                return json.loads(json_tricks.dumps(response))
-            else:
-                pickled_input = ""
-        except Exception:
-            logging.getLogger(__name__).warning(
-                "Failed to unpickle extras.pickled, falling back to full run"
-            )
-            pickled_input = ""
+    cached = unpack_if_valid(
+        pickled_input, expected_fingerprint=request_fingerprint, crypto=get_crypto()
+    ) if pickled_input else None
+
+    if cached is not None:
+        result = cached["result"]
+        optimizer = cached["optimizer"]
+        response = process_result(
+            result, optimizer, dimensions, cfg, extras, data, space,
+            request_fingerprint=request_fingerprint, pickled_used=True,
+        )
+        response["result"]["extras"]["parameters"] = {
+            "dimensions": dimensions,
+            "space": space,
+            "hyperparams": hyperparams,
+            "Xi": Xi,
+            "Yi": Yi,
+            "extras": extras,
+        }
+        return json.loads(json_tricks.dumps(response))
 
     if constraints is not None and len(constraints) > 0:
         optimizer = Optimizer(
@@ -151,7 +148,10 @@ def run(body) -> dict:
     else:
         result = []
 
-    response = process_result(result, optimizer, dimensions, cfg, extras, data, space)
+    response = process_result(
+        result, optimizer, dimensions, cfg, extras, data, space,
+        request_fingerprint=request_fingerprint, pickled_used=False,
+    )
 
     response["result"]["extras"]["parameters"] = {
         "dimensions": dimensions,
@@ -174,7 +174,8 @@ def convert_number_type(value, num_type):
     return float(value)
 
 
-def process_result(result, optimizer, dimensions, cfg, extras, data, space):
+def process_result(result, optimizer, dimensions, cfg, extras, data, space,
+                   *, request_fingerprint, pickled_used):
     """Extracts results from the OptimizerResult.
 
     Parameters
@@ -392,12 +393,16 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 )
 
     if pickle_model:
-        result_details["pickled"] = pickleToString(
-            {"result": result, "next": result_details["next"], "optimizer": optimizer},
-            get_crypto()
+        result_details["pickled"] = pack(
+            result=result,
+            next_points=result_details["next"],
+            optimizer=optimizer,
+            fingerprint=request_fingerprint,
+            crypto=get_crypto(),
         )
 
     add_version_info(result_details["extras"])
+    result_details["extras"]["pickledUsed"] = pickled_used
 
     # print(str(response))
     org_models = response["result"]["models"]
