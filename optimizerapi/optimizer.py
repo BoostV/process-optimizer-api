@@ -416,7 +416,6 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space,
     add_version_info(result_details["extras"])
     result_details["extras"]["pickledUsed"] = pickled_used
 
-    # print(str(response))
     org_models = response["result"]["models"]
     for model in org_models:
         # Flatten expected minimum entries
@@ -485,7 +484,6 @@ def add_plot(result, id="generic", close=True, debug=False):
         with open("tmp/process_optimizer_" + id + ".png", "wb") as imgfile:
             plt.savefig(imgfile, bbox_inches="tight", pad_inches=0)
 
-    # print("IMAGE: " + str(pic_hash, "utf-8"))
     if close:
         plt.clf()
 
