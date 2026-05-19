@@ -13,7 +13,8 @@ paths:
         - oauth2: []
         - apikey: []
       description: Run optimizer with the specified parameters
-      operationId: optimizerapi.optimizer_handler.run
+      operationId: run_optimizer
+      x-openapi-router-controller: optimizerapi.optimizer_handler
       responses:
         "200":
           description: Result of running the optimizer with the specified parameters
@@ -125,7 +126,8 @@ paths:
   /health:
     get:
       description: Health check endpoint
-      operationId: optimizerapi.health.check
+      operationId: health_check
+      x-openapi-router-controller: optimizerapi.health
       responses:
         "200":
           description: Service is reachable

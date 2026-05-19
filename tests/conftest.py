@@ -15,8 +15,8 @@ def stable_pickle_key():
     """Set a fixed PICKLE_KEY for all tests.
 
     Without this, get_crypto() generates a new ephemeral Fernet key on every
-    call, so encrypt/decrypt round-trips across two optimizer.run() calls (or
-    between run() and a direct unpickleFromString() call in a test) will fail
+    call, so encrypt/decrypt round-trips across two optimizer.run_optimizer() calls (or
+    between run_optimizer() and a direct unpickleFromString() call in a test) will fail
     with InvalidToken.  A stable key makes the test environment mirror a real
     deployment where PICKLE_KEY is set in the environment.
     """

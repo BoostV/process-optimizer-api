@@ -108,13 +108,13 @@ def validateResult(result):
 
 
 def test_can_be_run_without_data():
-    result = optimizer.run(body={"data": [], "optimizerConfig": sampleConfig})
+    result = optimizer.run_optimizer(body={"data": [], "optimizerConfig": sampleConfig})
     validateResult(result)
     assert len(result["plots"]) == 0
 
 
 def test_generates_plots_when_run_with_more_than_initialPoints_samples():
-    result = optimizer.run(body={"data": sampleData, "optimizerConfig": sampleConfig})
+    result = optimizer.run_optimizer(body={"data": sampleData, "optimizerConfig": sampleConfig})
     validateResult(result)
     assert len(result["result"]["models"]) > 0
     assert len(result["plots"]) == 7
@@ -122,7 +122,7 @@ def test_generates_plots_when_run_with_more_than_initialPoints_samples():
 
 def test_generates_convergence_plots():
     convergence_config = copy.deepcopy(sampleConfig)
-    result = optimizer.run(
+    result = optimizer.run_optimizer(
         body={"data": sampleData, "optimizerConfig": convergence_config, "extras": {"graphs": ["convergence"]}}
     )
     validateResult(result)
@@ -132,7 +132,7 @@ def test_generates_convergence_plots():
 
 
 def test_specifying_png_plots():
-    result = optimizer.run(
+    result = optimizer.run_optimizer(
         body={
             "data": sampleData,
             "optimizerConfig": sampleConfig,
@@ -145,7 +145,7 @@ def test_specifying_png_plots():
 
 
 def test_specifying_json_single_plots():
-    result = optimizer.run(
+    result = optimizer.run_optimizer(
         body={
             "data": sampleData,
             "optimizerConfig": sampleConfig,
@@ -186,7 +186,7 @@ def test_specifying_json_single_plots():
 
 
 def test_specifying_empty_extras_preserve_legacy_plotting():
-    result = optimizer.run(
+    result = optimizer.run_optimizer(
         body={"data": sampleData, "optimizerConfig": sampleConfig, "extras": {}}
     )
     validateResult(result)
@@ -196,7 +196,7 @@ def test_specifying_empty_extras_preserve_legacy_plotting():
 
 def test_deselecting_plots():
     # If graphFormat is none, no plots should be returned. This should be faster.
-    result = optimizer.run(
+    result = optimizer.run_optimizer(
         body={
             "data": sampleData,
             "optimizerConfig": sampleConfig,
@@ -209,7 +209,7 @@ def test_deselecting_plots():
 
 
 def test_can_accept_multi_objective_data():
-    result = optimizer.run(
+    result = optimizer.run_optimizer(
         body={
             "data": sampleMultiObjectiveData,
             "optimizerConfig": sampleConfig,
@@ -228,7 +228,7 @@ def test_can_accept_multi_objective_data():
 
 
 def test_multi_objective_json_single_plots():
-    result = optimizer.run(
+    result = optimizer.run_optimizer(
         body={
             "data": sampleMultiObjectiveData,
             "optimizerConfig": sampleConfig,
@@ -281,7 +281,7 @@ def test_multi_objective_json_single_plots():
 
 def test_deselecting_pickled_model():
     # If includeModel is false, pickled data should not be included in result
-    result = optimizer.run(
+    result = optimizer.run_optimizer(
         body={
             "data": sampleData,
             "optimizerConfig": sampleConfig,
@@ -294,7 +294,7 @@ def test_deselecting_pickled_model():
 
 def test_selecting_pickled_model():
     # If includeModel is true, pickled data should be included in result
-    result = optimizer.run(
+    result = optimizer.run_optimizer(
         body={
             "data": sampleData,
             "optimizerConfig": sampleConfig,
@@ -306,7 +306,7 @@ def test_selecting_pickled_model():
 
 
 def test_expected_minimum_contains_std_deviation():
-    result = optimizer.run(body={"data": sampleData, "optimizerConfig": sampleConfig})
+    result = optimizer.run_optimizer(body={"data": sampleData, "optimizerConfig": sampleConfig})
     assert "expected_minimum" in result["result"]
     expected_minimum = result["result"]["expected_minimum"]
     assert isinstance(expected_minimum[1], collections.abc.Sequence)
@@ -316,7 +316,7 @@ def test_expected_minimum_contains_std_deviation():
 def test_when_using_constraints_set_constraints_should_be_called(mock):
     instance = mock.return_value
     request = brownie_with_constraints
-    optimizer.run(body=request)
+    optimizer.run_optimizer(body=request)
     instance.set_constraints.assert_called_once()
 
 
@@ -324,7 +324,7 @@ def test_when_using_constraints_set_constraints_should_be_called(mock):
 def test_when_not_using_constraints_set_constraints_should_not_be_called(mock):
     instance = mock.return_value
     request = brownie_without_constraints
-    optimizer.run(body=request)
+    optimizer.run_optimizer(body=request)
     instance.set_constraints.assert_not_called()
 
 
@@ -332,7 +332,7 @@ def test_when_not_using_constraints_set_constraints_should_not_be_called(mock):
 def test_when_using_constraints_strategy_cl_min_should_be_used(mock):
     instance = mock.return_value
     request = brownie_with_constraints
-    optimizer.run(body=request)
+    optimizer.run_optimizer(body=request)
     instance.ask.assert_called_once_with(n_points=3, strategy="cl_min")
 
 
@@ -340,12 +340,12 @@ def test_when_using_constraints_strategy_cl_min_should_be_used(mock):
 def test_when_not_using_constraints_standard_strategy_should_be_used(mock):
     instance = mock.return_value
     request = brownie_without_constraints
-    optimizer.run(body=request)
+    optimizer.run_optimizer(body=request)
     instance.ask.assert_called_once_with(n_points=3)
 
 
 def test_selectedPoint_single_objective_json():
-    default_result = optimizer.run(body={
+    default_result = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"graphFormat": "json", "graphs": ["single"], "includeModel": "false"},
@@ -356,7 +356,7 @@ def test_selectedPoint_single_objective_json():
     assert selected_point[0] != default_x_highlight, (
         "selected_point[0] must differ from default highlight for this test to be meaningful"
     )
-    result = optimizer.run(body={
+    result = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {
@@ -374,7 +374,7 @@ def test_selectedPoint_single_objective_json():
 
 def test_selectedPoint_multi_objective_json():
     selected_point = [651, 56, 722, "Ræv"]
-    result = optimizer.run(body={
+    result = optimizer.run_optimizer(body={
         "data": sampleMultiObjectiveData,
         "optimizerConfig": sampleConfig,
         "extras": {
@@ -397,7 +397,7 @@ def test_selectedPoint_with_png_logs_warning_and_is_ignored(caplog):
     import logging as _logging
 
     with caplog.at_level(_logging.WARNING, logger="optimizerapi.optimizer"):
-        result = optimizer.run(body={
+        result = optimizer.run_optimizer(body={
             "data": sampleData,
             "optimizerConfig": sampleConfig,
             "extras": {
@@ -414,7 +414,7 @@ def test_selectedPoint_with_png_logs_warning_and_is_ignored(caplog):
 
 
 def test_no_selectedPoint_preserves_default():
-    result = optimizer.run(body={
+    result = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"graphFormat": "json", "graphs": ["single"], "includeModel": "false"},
@@ -430,13 +430,13 @@ def test_no_selectedPoint_preserves_default():
 
 
 def test_selectedPoint_does_not_change_expected_minimum():
-    default_result = optimizer.run(body={
+    default_result = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"graphFormat": "json", "graphs": ["single"], "includeModel": "false"},
     })
     selected_point = [651, 56, 722, "Ræv"]
-    result_with_selection = optimizer.run(body={
+    result_with_selection = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {
@@ -455,7 +455,7 @@ def test_selectedPoint_does_not_change_expected_minimum():
 def test_pickled_consumption_skips_training():
     """Test that providing extras.pickled skips model retraining (tell() not called)"""
     # First run to get pickled
-    first_result = optimizer.run(body={
+    first_result = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"includeModel": "true"},
@@ -465,7 +465,7 @@ def test_pickled_consumption_skips_training():
 
     # Second run with pickled - tell() should NOT be called
     with patch("optimizerapi.optimizer.Optimizer.tell") as mock_tell:
-        second_result = optimizer.run(body={
+        second_result = optimizer.run_optimizer(body={
             "data": sampleData,
             "optimizerConfig": sampleConfig,
             "extras": {"pickled": pickled_value, "includeModel": "false"},
@@ -485,7 +485,7 @@ def test_old_format_pickled_falls_back(caplog):
     old_pickled = pickleToString(old_format_data, get_crypto())
 
     with caplog.at_level(_logging.WARNING, logger="optimizerapi.pickled_state"):
-        result = optimizer.run(body={
+        result = optimizer.run_optimizer(body={
             "data": sampleData,
             "optimizerConfig": sampleConfig,
             "extras": {"pickled": old_pickled, "includeModel": "false", "graphFormat": "json"},
@@ -502,7 +502,7 @@ def test_invalid_pickled_falls_back(caplog):
     import logging as _logging
 
     with caplog.at_level(_logging.WARNING, logger="optimizerapi.pickled_state"):
-        result = optimizer.run(body={
+        result = optimizer.run_optimizer(body={
             "data": sampleData,
             "optimizerConfig": sampleConfig,
             "extras": {"pickled": "this_is_not_valid_pickled_data_at_all", "includeModel": "false", "graphFormat": "json"},
@@ -516,7 +516,7 @@ def test_invalid_pickled_falls_back(caplog):
 
 def test_pickled_response_is_dict_format():
     """Test that pickled response is a dict with keys fingerprint, result, next, optimizer"""
-    result = optimizer.run(body={
+    result = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"includeModel": "true", "graphFormat": "json"},
@@ -532,7 +532,7 @@ def test_pickled_response_is_dict_format():
 def test_pickled_round_trip():
     """Test that pickled from run 1 can be sent as extras.pickled in run 2"""
     # Run 1
-    first_result = optimizer.run(body={
+    first_result = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"includeModel": "true"},
@@ -541,7 +541,7 @@ def test_pickled_round_trip():
     assert len(pickled_value) > 0
 
     # Run 2 with pickled - should produce a valid response
-    second_result = optimizer.run(body={
+    second_result = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"pickled": pickled_value, "includeModel": "false"},
@@ -580,7 +580,7 @@ sampleMultiObjective5DimConfig = {
 def test_pickled_with_selectedPoint():
     """Integration test: pickled from run 1 consumed in run 2 with selectedPoint from pareto front"""
     # Run 1: multi-objective JSON request — get pickled
-    run1_result = optimizer.run(body={
+    run1_result = optimizer.run_optimizer(body={
         "data": sampleMultiObjective5DimData,
         "optimizerConfig": sampleMultiObjective5DimConfig,
         "extras": {
@@ -602,7 +602,7 @@ def test_pickled_with_selectedPoint():
     selected_point = front_x_data[0]
 
     # Run 2: same request + pickled + selectedPoint
-    run2_result = optimizer.run(body={
+    run2_result = optimizer.run_optimizer(body={
         "data": sampleMultiObjective5DimData,
         "optimizerConfig": sampleMultiObjective5DimConfig,
         "extras": {
@@ -634,7 +634,7 @@ def test_pickled_with_selectedPoint():
 def test_pickled_consumption_with_include_model_false():
     """Integration test: pickled consumed + includeModel=false → pickled suppressed in response"""
     # Run 1: get pickled
-    run1_result = optimizer.run(body={
+    run1_result = optimizer.run_optimizer(body={
         "data": sampleMultiObjective5DimData,
         "optimizerConfig": sampleMultiObjective5DimConfig,
         "extras": {
@@ -648,7 +648,7 @@ def test_pickled_consumption_with_include_model_false():
     assert len(pickled_value) > 0
 
     # Run 2: consume pickled + includeModel=false
-    run2_result = optimizer.run(body={
+    run2_result = optimizer.run_optimizer(body={
         "data": sampleMultiObjective5DimData,
         "optimizerConfig": sampleMultiObjective5DimConfig,
         "extras": {
@@ -674,7 +674,7 @@ def test_pickled_consumption_with_include_model_false():
 
 def test_pickled_used_flag_round_trip():
     """First run has pickledUsed=False; second run with returned pickled has pickledUsed=True."""
-    first = optimizer.run(body={
+    first = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"includeModel": "true", "graphFormat": "json"},
@@ -683,7 +683,7 @@ def test_pickled_used_flag_round_trip():
     pickled_value = first["result"]["pickled"]
     assert len(pickled_value) > 0
 
-    second = optimizer.run(body={
+    second = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"includeModel": "true", "pickled": pickled_value, "graphFormat": "json"},
@@ -694,7 +694,7 @@ def test_pickled_used_flag_round_trip():
 def test_selectedPoint_with_no_data():
     """Integration test: selectedPoint with empty data — server handles gracefully"""
     selected_point = [50, 833, 150, 60, "Whipped cream"]
-    result = optimizer.run(body={
+    result = optimizer.run_optimizer(body={
         "data": [],
         "optimizerConfig": sampleMultiObjective5DimConfig,
         "extras": {
@@ -725,7 +725,7 @@ def test_equivalence_with_and_without_pickled_multi_objective():
     }
 
     # Seed: one full run to capture pickled.
-    seed = optimizer.run(body=copy.deepcopy({
+    seed = optimizer.run_optimizer(body=copy.deepcopy({
         **base_body,
         "extras": {**base_body["extras"], "selectedPoint": None},
     }))
@@ -734,12 +734,12 @@ def test_equivalence_with_and_without_pickled_multi_objective():
 
     # Run A: no pickled (full retrain), with selectedPoint.
     body_no_pickle = copy.deepcopy(base_body)
-    result_no_pickle = optimizer.run(body=body_no_pickle)
+    result_no_pickle = optimizer.run_optimizer(body=body_no_pickle)
 
     # Run B: same request + pickled.
     body_with_pickle = copy.deepcopy(base_body)
     body_with_pickle["extras"]["pickled"] = pickled_value
-    result_with_pickle = optimizer.run(body=body_with_pickle)
+    result_with_pickle = optimizer.run_optimizer(body=body_with_pickle)
 
     # Sanity: fast path actually engaged.
     assert result_with_pickle["result"]["extras"]["pickledUsed"] is True
@@ -760,7 +760,7 @@ def test_pickled_fingerprint_mismatch_falls_through(caplog):
     """A pickled produced from one data set is ignored when data changes."""
     import logging as _logging
 
-    seed = optimizer.run(body={
+    seed = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"includeModel": "true", "graphFormat": "json"},
@@ -771,7 +771,7 @@ def test_pickled_fingerprint_mismatch_falls_through(caplog):
     altered_data = sampleData + [{"xi": [100, 100, 100, "Mus"], "yi": [0.5]}]
 
     with caplog.at_level(_logging.WARNING, logger="optimizerapi.pickled_state"):
-        result = optimizer.run(body={
+        result = optimizer.run_optimizer(body={
             "data": altered_data,
             "optimizerConfig": sampleConfig,
             "extras": {"includeModel": "true", "pickled": pickled_value, "graphFormat": "json"},
@@ -787,7 +787,7 @@ def test_pickled_fingerprint_mismatch_falls_through(caplog):
 def test_includeModel_false_with_pickled_logs_chain_break_warning(caplog):
     import logging as _logging
 
-    seed = optimizer.run(body={
+    seed = optimizer.run_optimizer(body={
         "data": sampleData,
         "optimizerConfig": sampleConfig,
         "extras": {"includeModel": "true", "graphFormat": "json"},
@@ -795,7 +795,7 @@ def test_includeModel_false_with_pickled_logs_chain_break_warning(caplog):
     pickled_value = seed["result"]["pickled"]
 
     with caplog.at_level(_logging.WARNING, logger="optimizerapi.optimizer"):
-        second = optimizer.run(body={
+        second = optimizer.run_optimizer(body={
             "data": sampleData,
             "optimizerConfig": sampleConfig,
             "extras": {"pickled": pickled_value, "includeModel": "false", "graphFormat": "json"},

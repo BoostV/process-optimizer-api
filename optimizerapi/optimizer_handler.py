@@ -67,14 +67,8 @@ else:
 queue = Queue(connection=redis)
 
 
-def run(body: "RequestBody") -> "ResponseEnvelope | tuple[dict[str, str], int]":
-    """Executes the ProcessOptimizer
-
-    Returns
-    -------
-    dict
-        a JSON encodable dictionary representation of the result.
-    """
+def run_optimizer(body: "RequestBody") -> "ResponseEnvelope | tuple[dict[str, str], int]":
+    """Handle the optimizer run request (POST /optimizer)."""
     disconnect_check = _resolve_disconnect_check()
 
     if _parse_env_bool("USE_WORKER"):
