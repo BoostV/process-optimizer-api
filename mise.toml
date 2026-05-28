@@ -1,2 +1,8 @@
 [tools]
 python = "3.13"
+
+[env]
+_.python.venv = {
+  path = ".venv", create = true,
+python_create_args = ["--without-pip"], # pass args to python -m venv
+}
