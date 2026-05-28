@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Install
-pip install -e .            # production deps
-pip install -e ".[dev]"     # + dev deps (pytest, pytest-watch)
+# Install (uv recommended; `pip` works too once the venv has it)
+uv pip install -e .            # production deps
+uv pip install -e ".[dev]"     # + dev deps (pytest, pytest-watch)
 
 # Test
 python -m pytest                                            # full suite

@@ -2,7 +2,7 @@
 
 - Before large refactors, run `python -m pytest` and `flake8 .` to ensure consistency.
 - Follow existing style: double quotes for JSON-like payload keys, snake_case for functions/variables, CapWords for classes.
-- For development dependencies: `pip install -e ".[dev]"`
+- For development dependencies: `uv pip install -e ".[dev]"`
 - Handle errors explicitly; avoid bare `except:` and log or re-raise with context where appropriate.
 - Keep functions small and focused; share logic between API handlers and tests instead of duplicating.
 - Keep module-level constants UPPER_SNAKE_CASE; avoid one-letter names except simple indices (see `.pylintrc`).
@@ -17,7 +17,7 @@
 - Start the dev server with `python -m optimizerapi.server` (see README.md).
 - Type-check locally with `mypy optimizerapi` (matches CI workflow); see `[tool.mypy]` in `pyproject.toml`.
 - Type hints are optional; when adding them, use Python typing and keep function signatures simple.
-- Use Python 3.9+ and `pip install -e .` before running.
+- Use Python 3.9+ and `uv pip install -e .` before running.
 - When adding dependencies, update `pyproject.toml` in the `dependencies` array
   (or `dev` in `optional-dependencies` for dev tools) and verify with `git diff`
   (see README.md).

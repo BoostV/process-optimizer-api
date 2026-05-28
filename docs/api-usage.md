@@ -21,7 +21,7 @@ The endpoint is the same for single- and multi-objective experiments — multi-o
 For development:
 
 ```bash
-pip install -e .
+uv pip install -e .
 python -m optimizerapi.server
 ```
 

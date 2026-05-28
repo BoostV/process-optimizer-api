@@ -6,13 +6,20 @@ This project expose a REST based API for [ProcessOptimizer](https://github.com/n
 
 If you have Docker installed the API can be started locally, in development mode, by running the script `build-and-run.sh`
 
-Alternatively the project can be build and run with the following commands:
+Alternatively the project can be built and run locally.
 
-    python3 -m venv env
-    source env/bin/activate
-    pip install --upgrade pip
+The toolchain (Python 3.13 + [`uv`](https://github.com/astral-sh/uv)) is
+pinned in `mise.toml`. With [mise](https://mise.jdx.dev/) installed
+(see the [getting started guide](https://mise.jdx.dev/getting-started.html)),
+`cd` into the repo provisions Python, `uv`, and a `.venv` automatically —
+just run `mise install` once. Without mise, install Python 3.13 and `uv`
+yourself (`brew install uv` or `pip install uv`) and create the venv
+manually:
 
-    pip install -e .
+    python3 -m venv .venv
+    source .venv/bin/activate
+
+    uv pip install -e .
     python -m optimizerapi.server
 
 Now open [http://localhost:9090/v1.0/ui/](http://localhost:9090/v1.0/ui/) in a browser to explore the API through Swagger UI
@@ -116,11 +123,11 @@ When adding a new dependency:
 2. For development dependencies, add to `[project.optional-dependencies]` under `dev`
 3. Install the updated dependencies:
 
-       pip install -e .
+       uv pip install -e .
 
    Or for development dependencies:
 
-       pip install -e ".[dev]"
+       uv pip install -e ".[dev]"
 
 4. Commit the changed `pyproject.toml` file
 
