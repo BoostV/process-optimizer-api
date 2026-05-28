@@ -6,6 +6,7 @@ verifying the full request/response cycle including authentication,
 validation, and the pareto front exploration workflow.
 """
 
+import copy
 import json
 import pytest
 
@@ -172,7 +173,9 @@ class TestE2EParetoFront:
         assert response.status_code == 200
         run2 = response.get_json()
 
-        # Verify selectedPoint is reflected in objective_1_0 plot (dimension 0)
+        # Verify selectedPoint is reflected in objective_1_0 plot (dimension 0).
+        # In get_Brownie_Bee_1d_plot's output shape, index 3 is the x-coord of
+        # the highlight point for the dimension.
         obj1_dim0 = next(p for p in run2["plots"] if p["id"] == "objective_1_0")
         plot_data = json.loads(obj1_dim0["plot"])
         assert plot_data["data"][3] == selected_point[0], (
@@ -251,6 +254,7 @@ class TestE2EParetoFront:
         assert "next" in run2["result"]
         assert len(run2["result"]["next"]) > 0
 
+        # Index 3 is the highlight x-coord in get_Brownie_Bee_1d_plot's output.
         obj1_dim0 = next(p for p in run2["plots"] if p["id"] == "objective_1_0")
         plot_data = json.loads(obj1_dim0["plot"])
         assert plot_data["data"][3] == selected_point[0]
@@ -284,7 +288,7 @@ class TestE2EParetoFront:
         pickled_value = result_no_pickle["result"]["pickled"]
 
         # Run with pickled
-        payload_with_pickle = json.loads(json.dumps(base_payload))  # deep copy
+        payload_with_pickle = copy.deepcopy(base_payload)
         payload_with_pickle["extras"]["pickled"] = pickled_value
 
         response_with_pickle = app_client.post(
@@ -299,7 +303,11 @@ class TestE2EParetoFront:
         assert result_with_pickle["result"]["extras"]["pickledUsed"] is True
         assert result_no_pickle["result"]["extras"]["pickledUsed"] is False
 
-        # Compare plots - should be identical
+        # Equivalence contract (docs §8): same plots and same next.
+        assert result_no_pickle["result"]["next"] == result_with_pickle["result"]["next"], (
+            "result.next should be identical with and without pickled"
+        )
+
         plots_no_pickle = {p["id"]: p["plot"] for p in result_no_pickle["plots"]}
         plots_with_pickle = {p["id"]: p["plot"] for p in result_with_pickle["plots"]}
 
@@ -334,33 +342,43 @@ class TestE2EParetoFront:
         pareto_plot = next(p for p in result["plots"] if p["id"] == "pareto_data")
         pareto_data = json.loads(pareto_plot["plot"])
 
-        # Required fields
-        assert "front_y_data" in pareto_data
-        assert "front_x_data" in pareto_data
-        assert "best_idx" in pareto_data
+        # All fields emit_pareto_data writes (docs §7 "per-objective uncertainty"
+        # corresponds to obj1_error / obj2_error).
+        assert set(pareto_data.keys()) >= {
+            "front_x_data",
+            "front_y_data",
+            "obj1_error",
+            "obj2_error",
+            "best_idx",
+        }
 
         # front_y_data is a list of [y_obj1, y_obj2] for each pareto point
         assert isinstance(pareto_data["front_y_data"], list)
         assert len(pareto_data["front_y_data"]) > 0  # At least one point on pareto front
-        # Each point should have 2 objectives
+        num_front_points = len(pareto_data["front_y_data"])
         for point in pareto_data["front_y_data"]:
             assert isinstance(point, list)
             assert len(point) == 2, f"Each point should have 2 objectives, got {len(point)}"
 
         # front_x_data should have shape (num_points, num_dimensions)
         assert isinstance(pareto_data["front_x_data"], list)
-        assert len(pareto_data["front_x_data"]) == len(pareto_data["front_y_data"]), (
+        assert len(pareto_data["front_x_data"]) == num_front_points, (
             "front_x_data and front_y_data should have same number of points"
         )
         for point in pareto_data["front_x_data"]:
             assert len(point) == len(MULTI_OBJECTIVE_CONFIG["space"])
 
+        # Per-objective uncertainty arrays line up with the front
+        assert isinstance(pareto_data["obj1_error"], list)
+        assert isinstance(pareto_data["obj2_error"], list)
+        assert len(pareto_data["obj1_error"]) == num_front_points
+        assert len(pareto_data["obj2_error"]) == num_front_points
+
         # best_idx should be a valid index
-        num_front_points = len(pareto_data["front_x_data"])
         assert 0 <= pareto_data["best_idx"] < num_front_points
 
     def test_pareto_with_png_format(self, app_client, api_key):
-        """Test that pareto plots work with PNG format (base64 encoded)."""
+        """PNG mode never emits pareto_data (it is JSON-only)."""
         payload = self.build_request(
             data=MULTI_OBJECTIVE_DATA,
             optimizer_config=MULTI_OBJECTIVE_CONFIG,
@@ -378,16 +396,19 @@ class TestE2EParetoFront:
         assert response.status_code == 200
         result = response.get_json()
 
-        # Pareto plot is included in PNG mode
         plot_ids = [p["id"] for p in result["plots"]]
-        # In non-JSON mode (graphFormat: png), the pareto plot is included but in PNG format
-        # Check that we have plots and response is valid
+        # PNG path produces single plots per model, never a pareto_data entry.
+        assert "pareto_data" not in plot_ids
         assert len(result["plots"]) > 0
-        assert "result" in result
         assert "next" in result["result"]
 
     def test_empty_data_with_pareto_request(self, app_client, api_key):
-        """Test that requesting pareto with empty data is handled gracefully."""
+        """Empty data + pareto in graphs returns initial-point suggestions without crashing.
+
+        Note: with data=[] there are no yi vectors, so n_objectives defaults to 1
+        and the pareto code path is never entered. This test only guards the
+        empty-data path; the pareto-specific behavior is covered elsewhere.
+        """
         payload = self.build_request(
             data=[],  # No data yet
             optimizer_config=MULTI_OBJECTIVE_CONFIG,
