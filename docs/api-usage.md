@@ -244,8 +244,19 @@ None of these conditions are errors. The HTTP response is always valid in all fi
 The endpoint returns three status codes:
 
 - `200 OK` — Success. Body is the result schema described in §5.
-- `400 Bad Request` — Validation, type, or I/O error in the request. Body is `{"message": "...", "error": "..."}`.
-- `500 Internal Server Error` — Unexpected server error. Body is the same `error` schema.
+- `400 Bad Request` — Validation, type, or I/O error in the request.
+- `500 Internal Server Error` — Unexpected server error.
+
+Both error responses use the RFC 7807 problem+json shape produced by Connexion:
+
+```jsonc
+{
+  "title":  "Bad request",          // or "Internal server error"
+  "detail": "<error message>",      // exception message or validator output
+  "status": 400,                    // or 500
+  "type":   "about:blank"
+}
+```
 
 For health checks: `GET /v1.0/health` returns `200` if the service is reachable.
 

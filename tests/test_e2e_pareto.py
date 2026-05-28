@@ -447,17 +447,13 @@ class TestE2EParetoFront:
 
         assert response.status_code == 401
 
-    def test_invalid_optimizer_config_returns_500(self, app_client, api_key):
-        """Test that invalid optimizer config (missing required fields) returns 500.
-        
-        Note: The server currently returns 500 for missing required fields in optimizerConfig.
-        This is a known limitation - the validation could be improved to return 400.
-        """
+    def test_invalid_optimizer_config_returns_400(self, app_client, api_key):
+        """Missing required optimizerConfig fields are rejected at validation time as 400."""
         payload = {
             "data": MULTI_OBJECTIVE_DATA,
             "optimizerConfig": {
                 "invalid_field": "value",
-                # Missing required "space" field
+                # Missing required fields (space, baseEstimator, ...)
             },
         }
 
@@ -467,11 +463,11 @@ class TestE2EParetoFront:
             content_type="application/json",
         )
 
-        # Server returns 500 for this type of validation error
-        assert response.status_code == 500
+        assert response.status_code == 400
         result = response.get_json()
-        # Connexion returns a standard problem+json shape with title/detail
+        # Connexion returns RFC 7807 problem+json
         assert "title" in result and "detail" in result
+        assert result.get("status") == 400
 
     def test_single_objective_does_not_include_pareto(self, app_client, api_key):
         """Test that single-objective optimization doesn't include pareto_data."""

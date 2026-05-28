@@ -221,6 +221,13 @@ components:
               $ref: "#/components/schemas/space"
             constraints:
               $ref: "#/components/schemas/constraints"
+          required:
+            - baseEstimator
+            - acqFunc
+            - initialPoints
+            - kappa
+            - xi
+            - space
       required:
         - data
         - optimizerConfig
