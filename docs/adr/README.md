@@ -37,3 +37,4 @@ record no ADR — that's expected. One ADR per branch is a smell.
 | -------------------------------------------- | ---------------------------------------------------------------- | -------- |
 | [0001](0001-pickled-model-cache-contract.md) | Pickled model is an advisory, fingerprint-validated cache hint   | accepted |
 | [0002](0002-adrs-and-ephemeral-agent-docs.md) | Record decisions in ADRs; treat agent plans/specs as branch-only | accepted |
+| [0003](0003-cpu-only-torch.md)               | Pin torch to the CPU-only wheel (slim image, faster builds)      | accepted |
