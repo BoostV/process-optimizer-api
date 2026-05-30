@@ -5,11 +5,13 @@ The handler functions are mapped to the OpenAPI specification through the "opera
 in the specification.yml file found in the folder "openapi" in the root of this project.
 """
 
+import hashlib
+import json
+import logging
 import os
 import time
-import json
-import traceback
-import hashlib
+from typing import TYPE_CHECKING
+
 from rq import Queue
 from rq.job import Job
 from rq.exceptions import NoSuchJobError
@@ -18,11 +20,40 @@ from redis import Redis
 import connexion
 from .optimizer import run as handle_run
 
-if "REDIS_URL" in os.environ:
-    REDIS_URL = os.environ["REDIS_URL"]
-else:
-    REDIS_URL = "redis://localhost:6379"
-print("Connecting to" + REDIS_URL)
+if TYPE_CHECKING:
+    from .types import RequestBody, ResponseEnvelope
+
+
+def _parse_env_bool(name: str, default: bool = False) -> bool:
+    """Parse a boolean-ish env var.
+
+    Accepts "true", "1", "yes" (case-insensitive) as True.
+    Anything else — including unset or "false" — is False.
+    """
+    raw = os.environ.get(name, "").strip().lower()
+    if not raw:
+        return default
+    return raw in ("true", "1", "yes")
+
+
+def _resolve_disconnect_check():
+    """Return a callable that reports whether the client has disconnected.
+
+    Outside of a request context (e.g. unit tests) or when running under
+    a server that doesn't expose ``waitress.client_disconnected``, this
+    returns a no-op that always says "still connected".
+    """
+    try:
+        env = connexion.request.environ
+    except RuntimeError:
+        return lambda: False
+    return env.get("waitress.client_disconnected", lambda: False)
+
+
+_LOG = logging.getLogger(__name__)
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+_LOG.info("Connecting to %s", REDIS_URL)
 redis = Redis.from_url(REDIS_URL)
 if "REDIS_TTL" in os.environ:
     TTL = int(os.environ["REDIS_TTL"])
@@ -36,37 +67,19 @@ else:
 queue = Queue(connection=redis)
 
 
-def run(body) -> dict:
-    """Executes the ProcessOptimizer
+def run_optimizer(body: "RequestBody") -> "ResponseEnvelope | tuple[dict[str, str], int]":
+    """Handle the optimizer run request (POST /optimizer)."""
+    disconnect_check = _resolve_disconnect_check()
 
-    Returns
-    -------
-    dict
-        a JSON encodable dictionary representation of the result.
-    """
-    try:
-        if "waitress.client_disconnected" in connexion.request.environ:
-            disconnect_check = connexion.request.environ["waitress.client_disconnected"]
-        else:
-
-            def disconnect_check():
-                return False
-
-    except RuntimeError:
-
-        def disconnect_check():
-            return False
-
-    if "USE_WORKER" in os.environ and os.environ["USE_WORKER"]:
+    if _parse_env_bool("USE_WORKER"):
         body_hash = hashlib.new("sha256")
         body_hash.update(json.dumps(body).encode())
         job_id = body_hash.hexdigest()
         try:
             job = Job.fetch(job_id, connection=redis)
-
-            print("Found existing job")
+            _LOG.info("Found existing job %s", job_id)
         except NoSuchJobError:
-            print(f"Creating new job (WORKER_TIMEOUT={WORKER_TIMEOUT})")
+            _LOG.info("Creating new job (WORKER_TIMEOUT=%s)", WORKER_TIMEOUT)
             job = queue.enqueue(
                 do_run_work,
                 body,
@@ -77,29 +90,30 @@ def run(body) -> dict:
         while job.return_value() is None:
             if disconnect_check():
                 try:
-                    print(f"Client disconnected, cancelling job {job.id}")
+                    _LOG.warning("Client disconnected, cancelling job %s", job.id)
                     job.cancel()
                     send_stop_job_command(redis, job.id)
                     job.delete()
                 except Exception:
                     pass
-                return {}
+                return {}  # type: ignore[return-value]  # empty sentinel on client disconnect
             time.sleep(0.2)
-        return job.return_value()
+        return job.return_value()  # type: ignore[return-value]  # RQ returns Any; narrowed in Phase 4
     return do_run_work(body)
 
 
-def do_run_work(body) -> dict:
-    """ "Handle the run request"""
+def do_run_work(body: "RequestBody") -> "ResponseEnvelope":
+    """Handle the run request.
+
+    On error we return a Connexion ``problem`` response, which serialises
+    to the OpenAPI-declared 400 / 500 response shape.
+    """
     try:
-        return handle_run(body)
-    except IOError as err:
-        return ({"message": "I/O error", "error": str(err)}, 400)
-    except TypeError as err:
-        return ({"message": "Type error", "error": str(err)}, 400)
-    except ValueError as err:
-        return ({"message": "Validation error", "error": str(err)}, 400)
+        # Phase 4 narrows optimizer.run return type to ResponseEnvelope
+        return handle_run(body)  # type: ignore[return-value]
+    except (IOError, TypeError, ValueError) as err:
+        _LOG.warning("client error: %s", err)
+        return connexion.problem(400, "Bad request", str(err))  # type: ignore[no-any-return]
     except Exception as err:
-        # Log unknown exceptions to support debugging
-        traceback.print_exc()
-        return ({"message": "Unknown error", "error": str(err)}, 500)
+        _LOG.exception("unexpected error during optimizer run")
+        return connexion.problem(500, "Internal server error", str(err))  # type: ignore[no-any-return]
