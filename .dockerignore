@@ -1,0 +1,25 @@
+# Keep the build context small and reproducible: the image installs deps from
+# pyproject.toml via uv, so local virtualenvs, VCS, tests, and docs are noise.
+.git
+.github
+.venv
+env
+*.egg-info
+__pycache__
+**/__pycache__
+*.pyc
+.mypy_cache
+.pytest_cache
+.ruff_cache
+tests
+docs
+scripts
+.claude
+.sisyphus
+*.md
+!README.md
+mise.toml
+.flake8
+pytest.ini
+Dockerfile
+.dockerignore

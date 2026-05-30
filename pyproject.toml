@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "process-optimizer-api"
+version = "1.0.0"
+description = "REST based API for ProcessOptimizer"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "BoostV" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+  "connexion[swagger-ui]==2.14.2",
+  "python-keycloak==2.13.2",
+  "Flask==2.2.3",
+  "Flask-Cors==3.0.10",
+  # develop as of 2026-03-11
+  "ProcessOptimizer[brownie-bee] @ git+https://github.com/novonordisk-research/ProcessOptimizer.git@f1c8637d5eab",
+  "json-tricks==3.15.5",
+  "jsonschema>=4.21,<5",
+  "cryptography>=44,<46",
+  "waitress==2.1.2",
+  "rq==2.0.0",
+  # torch arrives transitively via ProcessOptimizer, but uv source pins only
+  # apply to *direct* dependencies — so we declare it here to force the CPU-only
+  # build (see [tool.uv.sources] below). The API runs CPU inference; the default
+  # PyPI torch wheel drags in ~5 GB of CUDA libraries we never use.
+  "torch",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.3", "pytest-watch==4.2.0", "flake8>=7", "mypy>=1.13"]
+
+[project.urls]
+Homepage = "https://github.com/BoostV/process-optimizer-api"
+Repository = "https://github.com/BoostV/process-optimizer-api"
+Issues = "https://github.com/BoostV/process-optimizer-api/issues"
+
+# Pull torch from PyTorch's CPU-only index so the install/image stays slim.
+# `explicit = true` means only packages mapped to it in [tool.uv.sources] use
+# this index; everything else still resolves from PyPI.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[tool.setuptools.packages.find]
+include = ["optimizerapi*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[tool.mypy]
+files = ["optimizerapi"]
+python_version = "3.13"
+strict = false
+# Start permissive; we tighten as Phase 4 lands.
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+disallow_any_unimported = false
+check_untyped_defs = true
+# Third-party libraries that don't ship type stubs.
+ignore_missing_imports = true

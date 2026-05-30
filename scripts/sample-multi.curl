@@ -1,0 +1,5 @@
+curl 'http://localhost:9090/v1.0/optimizer?apikey=none' \
+-X 'POST' \
+-H 'Content-Type: application/json' \
+-H 'Accept: */*' \
+--data-raw '{"extras":{"experimentSuggestionCount":1,"graphs":["pareto","single"],"graphFormat":"json"},"data":[{"xi":[16.7,500,250,20,"None"],"yi":[-2,-17]},{"xi":[50,833,150,60,"Whipped cream"],"yi":[-3,-6]},{"xi":[58.3,22,85,6,"Frosting"],"yi":[-6,-25]}],"optimizerConfig":{"baseEstimator":"GP","acqFunc":"EI","initialPoints":3,"kappa":1.96,"xi":2,"space":[{"type":"continuous","name":"Sugar","from":0,"to":100},{"type":"continuous","name":"Flour","from":0,"to":1000},{"type":"discrete","name":"Temperature","from":0,"to":300},{"type":"discrete","name":"Time","from":0,"to":120},{"type":"category","name":"Finish","categories":["None","Frosting","Whipped cream"]}],"constraints":[]}}'

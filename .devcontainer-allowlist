@@ -1,0 +1,13 @@
+registry-1.docker.io
+auth.docker.io
+production.cloudfront.docker.com
+ghcr.io
+pkg-containers.githubusercontent.com
+deb.debian.org
+security.debian.org
+pypi.org
+files.pythonhosted.org
+download.pytorch.org
+download-r2.pytorch.org
+github.com
+codeload.github.com

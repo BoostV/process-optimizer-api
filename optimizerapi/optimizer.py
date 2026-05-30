@@ -4,38 +4,151 @@ This file contains the central logic for executing the optimizer requests.
 It should only depend on ProcessOptimizer specifics and json related features.
 """
 
+import importlib.metadata
+import json
+import logging
 import os
 import platform
-from time import strftime
-import base64
-import io
-import json
 import subprocess
+from dataclasses import dataclass
+from time import strftime
+
 import json_tricks
-from ProcessOptimizer import Optimizer, expected_minimum
-from ProcessOptimizer.plots import (
-    plot_objective,
-    plot_convergence,
-    plot_Pareto,
-    plot_brownie_bee_frontend,
-)
-from ProcessOptimizer.space import Real
-from ProcessOptimizer.space.constraints import SumEquals
 import matplotlib.pyplot as plt
 import numpy
+from ProcessOptimizer import Optimizer, expected_minimum
+from ProcessOptimizer.space import Real
+from ProcessOptimizer.space.constraints import SumEquals
 
-from .securepickle import pickleToString, get_crypto
+from typing import TYPE_CHECKING, Any, cast
+
+from .securepickle import get_crypto
+from .pickled_state import compute_fingerprint, pack, unpack_if_valid
+from .plot_emitters import emit_json_single_plots, emit_pareto_data, emit_png_plots
+
+if TYPE_CHECKING:
+    from .types import Extras, OptimizerConfig, Plot, RequestBody
 
 numpy.random.seed(42)
 plt.switch_backend("Agg")
 
 
-def run(body) -> dict:
-    """ "Handle the run request"""
+@dataclass(frozen=True)
+class _ParsedExtras:
+    graph_format: str
+    max_quality: int
+    graphs_to_return: list[str]
+    objective_pars: str
+    include_model: bool
+    selected_point: "list[str | float] | None"
+    experiment_suggestion_count: int
+
+
+def _parse_bool(value: object, default: bool = True) -> bool:
+    """Coerce extras' stringly-typed boolean fields.
+
+    Accepts the literals "true" / "false" (case-insensitive), real bools,
+    and JSON-style ``true``/``false``. Anything else falls back to *default*.
+    """
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    text = str(value).strip().lower()
+    if text in ("true", "1", "yes"):
+        return True
+    if text in ("false", "0", "no"):
+        return False
+    return default
+
+
+def _parse_extras(extras: "Extras", logger: "logging.Logger") -> _ParsedExtras:
+    """Read the request ``extras`` block into a typed view.
+
+    Emits the PNG + selectedPoint warning here so callers don't need to
+    duplicate the check.
+    """
+    graph_format = extras.get("graphFormat", "png")
+    selected_point = extras.get("selectedPoint")
+    if selected_point is not None and graph_format != "json":
+        logger.warning(
+            "selectedPoint ignored on png path (graphFormat=%s)", graph_format
+        )
+    return _ParsedExtras(
+        graph_format=graph_format,
+        max_quality=int(extras.get("maxQuality", 5)),
+        graphs_to_return=list(extras.get(
+            "graphs", ["objective", "convergence", "pareto", "single"]
+        )),
+        objective_pars=extras.get("objectivePars", "result"),
+        include_model=_parse_bool(extras.get("includeModel", "true")),
+        selected_point=selected_point,
+        experiment_suggestion_count=int(extras.get("experimentSuggestionCount", 1)),
+    )
+
+
+def _compute_next_experiments(
+    optimizer: Any,
+    cfg: "OptimizerConfig",
+    n_points: int,
+) -> list[list[str | float]]:
+    """Ask the optimizer for the next N experiments, normalising the shape.
+
+    ``optimizer.ask`` can return either a single experiment (flat list) or
+    a list of experiments. We always return a list of lists.
+    """
+    constraints = cfg.get("constraints", [])
+    if constraints:
+        next_exp = optimizer.ask(n_points=n_points, strategy="cl_min")
+    else:
+        next_exp = optimizer.ask(n_points=n_points)
+    if next_exp and not any(isinstance(x, list) for x in next_exp):
+        next_exp = [next_exp]
+    return cast(list[list[str | float]], round_to_length_scales(next_exp, optimizer.space))
+
+
+def _flatten_expected_minima(models: list[dict]) -> None:
+    """In-place flatten of nested ``expected_minimum`` entries on each model.
+
+    The pre-flatten shape from ``process_model`` can be a list of mixed
+    scalars and lists; the response contract is a single flat list inside
+    a one-element outer list. This function normalises that.
+    """
+    for model in models:
+        flat = []
+        for x in model["expected_minimum"]:
+            if isinstance(x, list):
+                flat.extend(x)
+            else:
+                flat.append(x)
+        model["expected_minimum"] = [flat]
+
+
+def _set_expected_minimum(
+    result_details: dict,
+    single_result: object,
+    space: object,
+) -> None:
+    """Compute and store the expected minimum (single-objective only)."""
+    minimum = expected_minimum(single_result, return_std=True)
+    result_details["expected_minimum"] = [
+        round_to_length_scales(minimum[0], space),
+        minimum[1],
+    ]
+
+
+def run(body: "RequestBody") -> dict:
+    """Handle the run request.
+
+    Returns the response envelope as a plain ``dict`` — the json_tricks
+    round-trip at the bottom of the function drops NumPy types, which is
+    why we cannot return ``ResponseEnvelope`` directly without an
+    explicit cast.
+    """
     data = [(run["xi"], run["yi"]) for run in body["data"]]
     cfg = body["optimizerConfig"]
-    constraints = cfg["constraints"] if "constraints" in cfg else []
-    extras = body["extras"] if "extras" in body else {}
+    constraints = cfg.get("constraints", [])
+    extras = body.get("extras", {})
     use_actual_measurement_histogram = json.loads(
         extras.get("useActualMeasurementHistogram", "true").lower()
     )
@@ -45,7 +158,7 @@ def run(body) -> dict:
                 convert_number_type(x["from"], x["type"]),
                 convert_number_type(x["to"], x["type"]),
             )
-            if (x["type"] == "discrete" or x["type"] == "continuous")
+            if x["type"] in ("discrete", "continuous")
             else tuple(x["categories"])
         )
         for x in cfg["space"]
@@ -66,6 +179,37 @@ def run(body) -> dict:
     n_objectives = 1
     if len(Yi) > 0:
         n_objectives = len(Yi[0])
+
+    request_fingerprint = compute_fingerprint(body["data"], cfg)
+    pickled_input = extras.get("pickled", "")
+    if pickled_input:
+        include_model_str = str(extras.get("includeModel", "true")).lower()
+        if include_model_str == "false":
+            logging.getLogger(__name__).warning(
+                "includeModel=false with extras.pickled present — if the cache hint is used, "
+                "the next call will not have one to reuse"
+            )
+    cached = unpack_if_valid(
+        pickled_input, expected_fingerprint=request_fingerprint, crypto=get_crypto()
+    ) if pickled_input else None
+
+    if cached is not None:
+        result = cached["result"]
+        optimizer = cached["optimizer"]
+        response = process_result(
+            result, optimizer, dimensions, cfg, extras, data, space,
+            request_fingerprint=request_fingerprint, pickled_used=True,
+        )
+        response["result"]["extras"]["parameters"] = {
+            "dimensions": dimensions,
+            "space": space,
+            "hyperparams": hyperparams,
+            "Xi": Xi,
+            "Yi": Yi,
+            "extras": extras,
+        }
+        # json_tricks roundtrip drops NumPy types and produces a plain dict
+        return cast(dict[Any, Any], json.loads(json_tricks.dumps(response)))
 
     if constraints is not None and len(constraints) > 0:
         optimizer = Optimizer(
@@ -90,7 +234,10 @@ def run(body) -> dict:
     else:
         result = []
 
-    response = process_result(result, optimizer, dimensions, cfg, extras, data, space)
+    response = process_result(
+        result, optimizer, dimensions, cfg, extras, data, space,
+        request_fingerprint=request_fingerprint, pickled_used=False,
+    )
 
     response["result"]["extras"]["parameters"] = {
         "dimensions": dimensions,
@@ -103,7 +250,8 @@ def run(body) -> dict:
 
     # It is necesarry to convert response to a json string and then back to
     # dictionary because NumPy types are not serializable by default
-    return json.loads(json_tricks.dumps(response))
+    # json_tricks roundtrip drops NumPy types and produces a plain dict
+    return cast(dict[Any, Any], json.loads(json_tricks.dumps(response)))
 
 
 def convert_number_type(value, num_type):
@@ -113,7 +261,18 @@ def convert_number_type(value, num_type):
     return float(value)
 
 
-def process_result(result, optimizer, dimensions, cfg, extras, data, space):
+def process_result(
+    result: Any,
+    optimizer: Any,
+    dimensions: list[str],
+    cfg: "OptimizerConfig",
+    extras: "Extras",
+    data: list[tuple[list[str | float], list[float]]],
+    space: list,
+    *,
+    request_fingerprint: str,
+    pickled_used: bool,
+) -> dict:
     """Extracts results from the OptimizerResult.
 
     Parameters
@@ -146,95 +305,77 @@ def process_result(result, optimizer, dimensions, cfg, extras, data, space):
                 model representation etc.}
         }
     """
-    result_details = {"next": [], "models": [], "pickled": "", "extras": {}}
-    plots = []
-    response = {"plots": plots, "result": result_details}
+    result_details: dict[str, Any] = {"next": [], "models": [], "pickled": "", "extras": {}}
+    plots: "list[Plot]" = []
+    response: dict[str, Any] = {"plots": plots, "result": result_details}
     # GraphFormat should, at the moment, be either "png" or "none". Default (legacy)
     # behavior is "png", so the API returns png images. Any other input is interpreted
     # as "None" at the moment.
-    graph_format = extras.get("graphFormat", "png")
-    max_quality = int(extras.get("maxQuality", "5"))
-    graphs_to_return = extras.get("graphs", ["objective", "convergence", "pareto"])
+    parsed = _parse_extras(extras, logging.getLogger(__name__))
 
-    objective_pars = extras.get("objectivePars", "result")
-
-    pickle_model = json.loads(extras.get("includeModel", "true").lower())
-
-    # In the following section details that should be reported to
-    # clients should go into the "resultDetails" dictionary and plots
-    # go into the "plots" list (this is handled by calling the "addPlot" function)
-    experiment_suggestion_count = 1
-    if "experimentSuggestionCount" in extras:
-        experiment_suggestion_count = extras["experimentSuggestionCount"]
-
-    if "constraints" in cfg and len(cfg["constraints"]) > 0:
-        next_exp = optimizer.ask(
-            n_points=experiment_suggestion_count, strategy="cl_min"
-        )
-    else:
-        next_exp = optimizer.ask(n_points=experiment_suggestion_count)
-    if len(next_exp) > 0 and not any(isinstance(x, list) for x in next_exp):
-        next_exp = [next_exp]
-    result_details["next"] = round_to_length_scales(next_exp, optimizer.space)
+    result_details["next"] = _compute_next_experiments(
+        optimizer, cfg, parsed.experiment_suggestion_count
+    )
 
     if len(data) >= cfg["initialPoints"]:
         # Some calculations are only possible if the model has
         # processed more than "initialPoints" data points
         result_details["models"] = [process_model(model, optimizer) for model in result]
-        if graph_format == "png":
+        if parsed.graph_format == "png":
+            emit_png_plots(
+                plots,
+                result=result,
+                dimensions=dimensions,
+                graphs=parsed.graphs_to_return,
+                max_quality=parsed.max_quality,
+                objective_pars=parsed.objective_pars,
+            )
+            if optimizer.n_objectives == 1:
+                _set_expected_minimum(result_details, result[0], optimizer.space)
+        elif parsed.graph_format == "json":
             for idx, model in enumerate(result):
-                if "single" in graphs_to_return:
-                    bb_plots = plot_brownie_bee_frontend(model, max_quality=max_quality)
-                    for i, plot in enumerate(bb_plots):
-                        pic_io_bytes = io.BytesIO()
-                        plot.savefig(pic_io_bytes, format="png")
-                        pic_io_bytes.seek(0)
-                        pic_hash = base64.b64encode(pic_io_bytes.read())
-                        plots.append(
-                            {"id": f"single_{idx}_{i}", "plot": str(pic_hash, "utf-8")}
-                        )
-                if "convergence" in graphs_to_return:
-                    plot_convergence(model)
-                    add_plot(plots, f"convergence_{idx}")
-
-                if "objective" in graphs_to_return:
-                    plot_objective(
-                        model,
-                        dimensions=dimensions,
-                        usepartialdependence=False,
-                        show_confidence=True,
-                        pars=objective_pars,
+                if "single" in parsed.graphs_to_return and optimizer.n_objectives != 2:
+                    emit_json_single_plots(
+                        plots,
+                        result=result[idx],
+                        prefix=f"single_{idx}",
+                        selected_point=parsed.selected_point,
                     )
-                    add_plot(plots, f"objective_{idx}")
+            # convergence and objective plots are PNG-only; nothing to emit here.
 
             if optimizer.n_objectives == 1:
-                minimum = expected_minimum(result[0], return_std=True)
-                result_details["expected_minimum"] = [
-                    round_to_length_scales(minimum[0], optimizer.space),
-                    minimum[1],
-                ]
-            elif "pareto" in graphs_to_return:
-                plot_Pareto(optimizer)
-                add_plot(plots, "pareto")
+                _set_expected_minimum(result_details, result[0], optimizer.space)
 
-    if pickle_model:
-        result_details["pickled"] = pickleToString(result, get_crypto())
+            if optimizer.n_objectives == 2 and "pareto" in parsed.graphs_to_return:
+                emit_pareto_data(plots, optimizer)
+
+            if optimizer.n_objectives == 2 and "single" in parsed.graphs_to_return:
+                emit_json_single_plots(
+                    plots,
+                    result=result[0],
+                    prefix="objective_1",
+                    selected_point=parsed.selected_point,
+                )
+                emit_json_single_plots(
+                    plots,
+                    result=result[1],
+                    prefix="objective_2",
+                    selected_point=parsed.selected_point,
+                )
+
+    if parsed.include_model:
+        result_details["pickled"] = pack(
+            result=result,
+            next_points=result_details["next"],
+            optimizer=optimizer,
+            fingerprint=request_fingerprint,
+            crypto=get_crypto(),
+        )
 
     add_version_info(result_details["extras"])
+    result_details["extras"]["pickledUsed"] = pickled_used
 
-    # print(str(response))
-    org_models = response["result"]["models"]
-    for model in org_models:
-        # Flatten expected minimum entries
-        model["expected_minimum"] = [
-            [
-                item
-                for sublist in [
-                    x if isinstance(x, list) else [x] for x in model["expected_minimum"]
-                ]
-                for item in sublist
-            ]
-        ]
+    _flatten_expected_minima(response["result"]["models"])
     return response
 
 
@@ -251,7 +392,7 @@ def process_model(model, optimizer):
     dict
         a dictionary containing the model specific results.
     """
-    result_details = {"expected_minimum": [], "extras": {}}
+    result_details: dict[str, Any] = {"expected_minimum": [], "extras": {}}
     minimum = expected_minimum(model)
     result_details["expected_minimum"] = [
         round_to_length_scales(minimum[0], optimizer.space),
@@ -260,43 +401,7 @@ def process_model(model, optimizer):
     return result_details
 
 
-def add_plot(result, id="generic", close=True, debug=False):
-    """Add the current figure to result as a base64 encoded string.
-
-    This function should be called after every plot that is generated.
-    It takes the current state of the figure canvas and writes it to
-    a base64 encoded string which is then appended to the list supplied.
-
-    Parameters
-    ----------
-    result : list
-        The list of plots to which new plots should be addeed.
-    id : str
-        Identifier for the plot (default is "generic")
-    close : bool
-        If set to True the current matplot figure is cleared after the plot
-        has been saved. (default is True)
-    debug : bool
-        Indicate if plots should be written to local files.
-        If set to True plots are stored in tmp/process_optimizer_[id].png
-        relative to current working directory. (default is False)
-    """
-    pic_io_bytes = io.BytesIO()
-    plt.savefig(pic_io_bytes, format="png", bbox_inches="tight")
-    pic_io_bytes.seek(0)
-    pic_hash = base64.b64encode(pic_io_bytes.read())
-    result.append({"id": id, "plot": str(pic_hash, "utf-8")})
-
-    if debug:
-        with open("tmp/process_optimizer_" + id + ".png", "wb") as imgfile:
-            plt.savefig(imgfile, bbox_inches="tight", pad_inches=0)
-
-    # print("IMAGE: " + str(pic_hash, "utf-8"))
-    if close:
-        plt.clf()
-
-
-def round_to_length_scales(x, space):
+def round_to_length_scales(x: Any, space: Any) -> Any:
     """Rounds a suggested experiment to to the length scales of each dimension
 
     For each dimension the length of the dimension is calculated and the
@@ -317,7 +422,7 @@ def round_to_length_scales(x, space):
         The space of the optimizer. Contains information about each dimension
         of the space
     """
-    for dim, i in zip(space.dimensions, range(len(space.dimensions))):
+    for i, dim in enumerate(space.dimensions):
         # Checking if dimension is real. Else do nothing
         if isinstance(dim, Real):
             length = dim.high - dim.low
@@ -346,9 +451,12 @@ def add_version_info(extras):
             The dictionary to hold the version information
     """
 
-    with open("requirements-freeze.txt", "r", encoding="utf-8") as requirements_file:
-        requirements = requirements_file.readlines()
-        extras["libraries"] = [x.rstrip() for x in requirements]
+    extras["libraries"] = sorted(
+        [
+            f"{dist.metadata['Name']}=={dist.version}"
+            for dist in importlib.metadata.distributions()
+        ]
+    )
 
     extras["pythonVersion"] = platform.python_version()
 
