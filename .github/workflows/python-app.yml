@@ -1,6 +1,5 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
+# Installs dependencies, lints, type-checks, and tests using the same
+# toolchain as local development (mise-managed Python + uv; see mise.toml).
 name: Python application
 
 on:
@@ -15,22 +14,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@v4
+    - name: Set up toolchain with mise (Python + uv, matches dev env)
+      uses: jdx/mise-action@v2
       with:
-        python-version: 3.9
+        install: true
+        cache: true
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        if [ -f requirements-freeze.txt ]; then pip install -r requirements-freeze.txt; fi
+      # mise.toml provisions Python 3.13 + uv and creates .venv; install the
+      # project with its dev extras (pytest, flake8, mypy) into that venv.
+      run: mise exec -- uv pip install -e ".[dev]"
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        mise exec -- flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        mise exec -- flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Type-check with mypy
+      run: mise exec -- mypy optimizerapi
     - name: Test with pytest
-      run: |
-        pytest
+      run: mise exec -- python -m pytest
