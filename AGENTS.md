@@ -27,6 +27,26 @@
 - When modifying the API, update `optimizerapi/openapi/specification.yml` and keep handler names consistent.
 - Write tests under `tests/` using `pytest` style; use `unittest.mock.patch` for external effects as in `tests/test_optimizer.py`.
 
+## Decisions and finishing a branch
+
+- **ADRs are the only durable design doc on `main`.** Significant decisions live
+  as Architecture Decision Records under `docs/adr/` (Nygard format); see
+  `docs/adr/README.md` for the bar and the workflow. Write one only when a future
+  maintainer would ask "why is it like this?" and the code won't answer. Most
+  branches need none — one ADR per branch is a smell.
+- **Agent-generated plans/specs are branch-only working artifacts.** The
+  spec/plan files produced while building (e.g. under `docs/superpowers/`) may
+  stay on the branch and in the PR for review, but are removed in a cleanup
+  commit before merge so they don't accumulate on `main`. Their durable content,
+  if any, is distilled into an ADR first.
+- **Branch-finalize flow** (advisory — the agent surfaces it, nothing enforces
+  it): when wrapping up a branch, (1) decide whether the work warrants an ADR and
+  draft it with human approval, (2) run the CI checks (`python -m pytest`,
+  `flake8 . --max-line-length=127`, `mypy optimizerapi`), (3) remove the
+  branch's plans/specs in a cleanup commit, then (4) open the PR / merge. The
+  Claude Code `finish-branch` skill (`.claude/skills/finish-branch/`) encodes
+  this; this policy is vendor-neutral and applies under any agent framework.
+
 ## Architecture
 
 This is an OpenAPI-first REST API wrapping [ProcessOptimizer](https://github.com/novonordisk-research/ProcessOptimizer) (Bayesian optimization). The API has a single main endpoint: `POST /optimizer`.

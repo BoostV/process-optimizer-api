@@ -10,4 +10,8 @@ dist/
 build/
 *.egg
 .sisyphus
-/.claude
+# Ignore local Claude Code settings, but keep shared skills tracked.
+/.claude/*
+!/.claude/skills/
+/.claude/skills/*
+!/.claude/skills/finish-branch/
