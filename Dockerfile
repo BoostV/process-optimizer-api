@@ -1,42 +1,57 @@
+# syntax=docker/dockerfile:1
 ARG GITHUB_REF_NAME=develop
 ARG GITHUB_SHA=local
-# First stage
-FROM python:3.9-bullseye AS builder
 
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:${PATH}"
+# ---- Builder: resolve and install dependencies with uv (matches dev/CI) ----
+FROM python:3.13-slim-bookworm AS builder
 
-RUN pip install --upgrade pip
+# git is required to install ProcessOptimizer from its git ref (see pyproject.toml).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
-RUN pip install .
+# uv: fast, parallel resolver — the same tool used locally and in CI.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Second stage
+ENV VIRTUAL_ENV=/opt/venv \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+RUN uv venv "$VIRTUAL_ENV"
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-FROM python:3.9-bullseye
+WORKDIR /src
+# setuptools needs the readme (project metadata) and the package source
+# (tool.setuptools.packages.find) to build the project; copy both before install.
+COPY pyproject.toml README.md ./
+COPY optimizerapi/ ./optimizerapi/
+# Cache mount keeps uv's download/build cache across builds even when this layer
+# is rebuilt, so the ProcessOptimizer git dependency isn't re-fetched every time.
+RUN --mount=type=cache,target=/root/.cache/uv uv pip install .
+
+# ---- Runtime ----
+FROM python:3.13-slim-bookworm
 ARG GITHUB_REF_NAME
 ARG GITHUB_SHA
-COPY --from=builder /opt/venv /opt/venv
+
 WORKDIR /code
-ENV VERSION=${GITHUB_REF_NAME}
-ENV SHA=${GITHUB_SHA}
+ENV VERSION=${GITHUB_REF_NAME} \
+    SHA=${GITHUB_SHA} \
+    FLASK_ENV=production \
+    MPLCONFIGDIR=/tmp/matplotlib \
+    PATH=/opt/venv/bin:${PATH}
 
-# add non-root user
-RUN addgroup --system user && adduser --system --no-create-home --group user
-RUN chown -R user:user /code && chmod -R 755 /code
-RUN mkdir -p /code/mapplotlib
-
-USER user
-
-COPY --from=builder /pyproject.toml /code/pyproject.toml
-#COPY version.txt /code
-RUN echo "${VERSION}-${SHA}" > /code/version.txt
+# Dependencies come from the builder venv; the app itself runs from /code where
+# the full source tree (incl. optimizerapi/openapi/specification.yml) is present.
+COPY --from=builder /opt/venv /opt/venv
+COPY pyproject.toml /code/pyproject.toml
 COPY optimizerapi/ /code/optimizerapi
 
-ENV FLASK_ENV=production
-ENV MPLCONFIGDIR=/tmp/mapplotlib
+# Run as a non-root user with a version stamp baked in.
+RUN addgroup --system user \
+    && adduser --system --no-create-home --group user \
+    && echo "${VERSION}-${SHA}" > /code/version.txt \
+    && chown -R user:user /code
 
-ENV PATH=/opt/venv/bin:${PATH}
-VOLUME /code/matplotlib
+USER user
 
 CMD [ "python", "-m", "optimizerapi.server" ]
