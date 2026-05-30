@@ -4,3 +4,10 @@
 /tmp
 version.txt
 .env
+
+*.egg-info/
+dist/
+build/
+*.egg
+.sisyphus
+/.claude
