@@ -6,13 +6,20 @@ This project expose a REST based API for [ProcessOptimizer](https://github.com/n
 
 If you have Docker installed the API can be started locally, in development mode, by running the script `build-and-run.sh`
 
-Alternatively the project can be build and run with the following commands:
+Alternatively the project can be built and run locally.
 
-    python3 -m venv env
-    source env/bin/activate
-    pip install --upgrade pip
+The toolchain (Python 3.13 + [`uv`](https://github.com/astral-sh/uv)) is
+pinned in `mise.toml`. With [mise](https://mise.jdx.dev/) installed
+(see the [getting started guide](https://mise.jdx.dev/getting-started.html)),
+`cd` into the repo provisions Python, `uv`, and a `.venv` automatically —
+just run `mise install` once. Without mise, install Python 3.13 and `uv`
+yourself (`brew install uv` or `pip install uv`) and create the venv
+manually:
 
-    pip install -r requirements-freeze.txt
+    python3 -m venv .venv
+    source .venv/bin/activate
+
+    uv pip install -e .
     python -m optimizerapi.server
 
 Now open [http://localhost:9090/v1.0/ui/](http://localhost:9090/v1.0/ui/) in a browser to explore the API through Swagger UI
@@ -108,20 +115,21 @@ Keycloak is configured using the following environement variables
 
 # Adding or updating dependencies
 
-When adding a new dependency, you should manually add it to `requirements.txt` and then run the following commands:
+This project uses `pyproject.toml` for dependency management following PEP 621 standards.
 
-    pip install -r requirements.txt
-    pip freeze | grep --invert-match pkg_resources > requirements-freeze.txt
+When adding a new dependency:
 
-Now you should check if the freeze operation resulted in unwanted upates by running:
+1. Add it to the `dependencies` array in `pyproject.toml` with a version constraint
+2. For development dependencies, add to `[project.optional-dependencies]` under `dev`
+3. Install the updated dependencies:
 
-    git diff requirements-freeze.txt
+       uv pip install -e .
 
-After manually fixing any dependencies, you should run:
+   Or for development dependencies:
 
-    pip install -r requirements-freeze.txt
+       uv pip install -e ".[dev]"
 
-Remember to commit both the changed `requirements.txt` and `requirements-freeze.txt` files.
+4. Commit the changed `pyproject.toml` file
 
 # Updating the change log
 
