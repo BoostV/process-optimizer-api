@@ -30,6 +30,11 @@ dependencies = [
   "cryptography>=44,<46",
   "waitress==2.1.2",
   "rq==2.0.0",
+  # torch arrives transitively via ProcessOptimizer, but uv source pins only
+  # apply to *direct* dependencies — so we declare it here to force the CPU-only
+  # build (see [tool.uv.sources] below). The API runs CPU inference; the default
+  # PyPI torch wheel drags in ~5 GB of CUDA libraries we never use.
+  "torch",
 ]
 
 [project.optional-dependencies]
@@ -39,6 +44,17 @@ dev = ["pytest==8.3.3", "pytest-watch==4.2.0", "flake8>=7", "mypy>=1.13"]
 Homepage = "https://github.com/BoostV/process-optimizer-api"
 Repository = "https://github.com/BoostV/process-optimizer-api"
 Issues = "https://github.com/BoostV/process-optimizer-api/issues"
+
+# Pull torch from PyTorch's CPU-only index so the install/image stays slim.
+# `explicit = true` means only packages mapped to it in [tool.uv.sources] use
+# this index; everything else still resolves from PyPI.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
 
 [tool.setuptools.packages.find]
 include = ["optimizerapi*"]
