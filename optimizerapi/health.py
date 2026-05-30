@@ -1,2 +1,2 @@
-def check() -> str:
+def health_check() -> str:
     return "OK"
