@@ -346,21 +346,31 @@ def process_result(
             if optimizer.n_objectives == 1:
                 _set_expected_minimum(result_details, result[0], optimizer.space)
 
+            optimal_point = None
             if optimizer.n_objectives == 2 and "pareto" in parsed.graphs_to_return:
-                emit_pareto_data(plots, optimizer)
+                optimal_point = emit_pareto_data(plots, optimizer)
 
             if optimizer.n_objectives == 2 and "single" in parsed.graphs_to_return:
+                # Default the 1D plots to the model's optimal (compromise) point
+                # so both objectives describe the *same* settings. Without an
+                # explicit point each objective falls back to its own expected
+                # minimum, leaving the two rows misaligned.
+                point = (
+                    parsed.selected_point
+                    if parsed.selected_point is not None
+                    else optimal_point
+                )
                 emit_json_single_plots(
                     plots,
                     result=result[0],
                     prefix="objective_1",
-                    selected_point=parsed.selected_point,
+                    selected_point=point,
                 )
                 emit_json_single_plots(
                     plots,
                     result=result[1],
                     prefix="objective_2",
-                    selected_point=parsed.selected_point,
+                    selected_point=point,
                 )
 
     if parsed.include_model:

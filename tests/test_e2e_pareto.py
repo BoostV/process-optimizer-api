@@ -33,6 +33,39 @@ MULTI_OBJECTIVE_CONFIG = {
     "constraints": [],
 }
 
+# Numeric-only multi-objective data (the built-in "CFPS multi objective"
+# example). Unlike MULTI_OBJECTIVE_DATA above it has no categorical factor, so
+# it exercises the all-numeric code path of get_Brownie_Bee_1d_plot — where the
+# score histogram (predicted-score distribution at the selected point) used to
+# be computed on the *raw* (untransformed) point and therefore never changed
+# between Pareto points.
+NUMERIC_MULTI_OBJECTIVE_DATA = [
+    {"xi": [1, 40, 0.5], "yi": [0.608, 0.0833]},
+    {"xi": [5, 120, 2.5], "yi": [1.9085, 2.0833]},
+    {"xi": [3, 80, 1.5], "yi": [1.3638, 0.75]},
+    {"xi": [5.5, 30, 0.25], "yi": [1.1523, 0.8542]},
+    {"xi": [2, 140, 2], "yi": [1.0272, 1.5556]},
+    {"xi": [0, 100, 1], "yi": [0.3739, 0.5556]},
+    {"xi": [4, 60, 2.75], "yi": [1.2057, 1.3958]},
+    {"xi": [3.5, 130, 0.75], "yi": [1.6283, 1.2431]},
+    {"xi": [1.5, 70, 2.25], "yi": [0.8189, 0.7986]},
+    {"xi": [0.5, 90, 0], "yi": [0.4268, 0.3472]},
+]
+
+NUMERIC_MULTI_OBJECTIVE_CONFIG = {
+    "baseEstimator": "GP",
+    "acqFunc": "EI",
+    "initialPoints": 4,
+    "kappa": 1.96,
+    "xi": 0.01,
+    "space": [
+        {"type": "continuous", "name": "Magnesium", "from": 0, "to": 6},
+        {"type": "discrete", "name": "Potassium", "from": 20, "to": 140},
+        {"type": "continuous", "name": "DTT", "from": 0, "to": 3},
+    ],
+    "constraints": [],
+}
+
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
 class TestE2EParetoFront:
@@ -180,6 +213,91 @@ class TestE2EParetoFront:
         plot_data = json.loads(obj1_dim0["plot"])
         assert plot_data["data"][3] == selected_point[0], (
             "selectedPoint should be reflected in the single plot highlight"
+        )
+
+    def test_score_histogram_tracks_selected_point_numeric_space(
+        self, app_client, api_key
+    ):
+        """The score histogram must follow the selected Pareto point.
+
+        Regression for the "histograms never change when clicking the Pareto
+        front" bug: get_Brownie_Bee_1d_plot computed the histogram mean/std via
+        model.predict() on the *raw* point, but the GP is fitted in transformed
+        space. For an all-numeric space the raw point sits far outside the
+        normalized domain, so every point collapsed to the prior mean — the
+        histogram was identical regardless of selection (while the per-factor
+        plots, which transform x_eval themselves, did move).
+        """
+
+        def histogram_for(selected_point):
+            payload = self.build_request(
+                data=NUMERIC_MULTI_OBJECTIVE_DATA,
+                optimizer_config=NUMERIC_MULTI_OBJECTIVE_CONFIG,
+                extras={
+                    "graphs": ["single"],
+                    "graphFormat": "json",
+                    "selectedPoint": selected_point,
+                },
+            )
+            response = app_client.post(
+                f"{self.BASE_URL}?apikey={api_key}",
+                json=payload,
+                content_type="application/json",
+            )
+            assert response.status_code == 200
+            plots = response.get_json()["plots"]
+            # The histogram is the last entry per objective: one plot per space
+            # dimension (3) followed by the histogram at index 3.
+            out = {}
+            for obj in ("objective_1", "objective_2"):
+                hist_plot = next(p for p in plots if p["id"] == f"{obj}_3")
+                out[obj] = json.loads(hist_plot["plot"])["histogram"]
+            return out
+
+        # First fetch the Pareto front and pick two genuinely different
+        # trade-offs: best quality vs best cost.
+        front_payload = self.build_request(
+            data=NUMERIC_MULTI_OBJECTIVE_DATA,
+            optimizer_config=NUMERIC_MULTI_OBJECTIVE_CONFIG,
+            extras={"graphs": ["pareto"], "graphFormat": "json"},
+        )
+        front_resp = app_client.post(
+            f"{self.BASE_URL}?apikey={api_key}",
+            json=front_payload,
+            content_type="application/json",
+        )
+        assert front_resp.status_code == 200
+        pareto = json.loads(
+            next(p for p in front_resp.get_json()["plots"] if p["id"] == "pareto_data")[
+                "plot"
+            ]
+        )
+        front_x = pareto["front_x_data"]
+        front_y = pareto["front_y_data"]
+        i_best_quality = min(range(len(front_y)), key=lambda i: front_y[i][0])
+        i_best_cost = min(range(len(front_y)), key=lambda i: front_y[i][1])
+
+        # Sanity: the front must actually offer a trade-off, else the test is
+        # vacuous.
+        assert front_y[i_best_quality][0] != front_y[i_best_cost][0]
+        assert front_y[i_best_quality][1] != front_y[i_best_cost][1]
+
+        at_quality = histogram_for(front_x[i_best_quality])
+        at_cost = histogram_for(front_x[i_best_cost])
+
+        for obj in ("objective_1", "objective_2"):
+            assert at_quality[obj]["mean"] != at_cost[obj]["mean"], (
+                f"{obj} histogram mean did not change between two different "
+                f"Pareto points (frozen histogram bug)"
+            )
+
+        # And the histogram mean should track the predicted score at the
+        # selected point (front_y), not collapse to a constant prior mean.
+        assert at_quality["objective_1"]["mean"] == pytest.approx(
+            front_y[i_best_quality][0], abs=0.1
+        )
+        assert at_cost["objective_2"]["mean"] == pytest.approx(
+            front_y[i_best_cost][1], abs=0.1
         )
 
     def test_full_pareto_exploration_workflow(self, app_client, api_key):
