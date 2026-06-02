@@ -8,7 +8,7 @@ Two output formats are supported:
 
 import base64
 import io
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import json_tricks
 import matplotlib.pyplot as plt
@@ -175,7 +175,7 @@ def emit_pareto_data(plots: "list[Plot]", optimizer: object) -> "list | None":
 
     if best_idx is None or len(front_x_data) == 0:
         return None
-    return front_x_data[best_idx].tolist()
+    return cast("list", front_x_data[best_idx].tolist())
 
 
 def _figure_to_b64(figure) -> str:
