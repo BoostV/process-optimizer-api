@@ -131,8 +131,15 @@ def emit_png_plots(
             _emit_current_figure(plots, f"single_{idx}")
 
 
-def emit_pareto_data(plots: "list[Plot]", optimizer: object) -> None:
-    """Append the pareto-front payload (multi-objective only)."""
+def emit_pareto_data(plots: "list[Plot]", optimizer: object) -> "list | None":
+    """Append the pareto-front payload (multi-objective only).
+
+    Returns the x-space coordinates of the model's compromise/optimal point
+    (``front_x_data[best_idx]``) so the caller can use it as the default
+    ``selected_point`` for the per-objective 1D plots — without it, each
+    objective's plots default to its own expected minimum and the two rows end
+    up describing different settings. Returns ``None`` if no front is available.
+    """
     front_x_data, front_y_data, obj1_error, obj2_error = get_Brownie_Bee_Pareto(
         optimizer, n_points=200
     )
@@ -145,6 +152,10 @@ def emit_pareto_data(plots: "list[Plot]", optimizer: object) -> None:
         "best_idx": best_idx,
     }
     plots.append({"id": "pareto_data", "plot": json_tricks.dumps(pareto_data)})
+
+    if best_idx is None or len(front_x_data) == 0:
+        return None
+    return front_x_data[best_idx].tolist()
 
 
 def _figure_to_b64(figure) -> str:
