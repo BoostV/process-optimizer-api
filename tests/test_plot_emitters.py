@@ -50,6 +50,26 @@ def test_emit_json_single_plots_supports_different_prefixes(fake_brownie_1d):
     assert ids[-1] == "objective_2_3"
 
 
+class _FakeModel:
+    def predict(self, X, return_std=False):
+        # Make the histogram depend on the transformed point so the test would
+        # catch a regression that ignored it.
+        value = float(numpy.ravel(X)[0])
+        return numpy.array([value]), numpy.array([0.5])
+
+
+class _FakeResult:
+    """Minimal stand-in for an OptimizeResult with a transform + model."""
+
+    def __init__(self):
+        self.models = [_FakeModel()]
+        self.space = self
+
+    def transform(self, points):
+        # Identity transform; just records that it was called with the point.
+        return numpy.asarray(points, dtype=float)
+
+
 def test_emit_json_single_plots_passes_selected_point_through(monkeypatch):
     captured = {}
 
@@ -62,6 +82,12 @@ def test_emit_json_single_plots_passes_selected_point_through(monkeypatch):
     )
 
     plots: list = []
-    sp = [50, 833, "Whipped cream"]
-    emit_json_single_plots(plots, result=object(), prefix="single_0", selected_point=sp)
+    sp = [50, 833]
+    emit_json_single_plots(
+        plots, result=_FakeResult(), prefix="single_0", selected_point=sp
+    )
     assert captured["x_eval"] == sp
+    # With a selected point the histogram is predicted at the transformed point,
+    # not taken from get_Brownie_Bee_1d_plot's (buggy) last entry.
+    histogram_payload = json.loads(plots[-1]["plot"])
+    assert histogram_payload["histogram"]["mean"] == 50.0

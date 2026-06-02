@@ -78,24 +78,44 @@ def emit_json_single_plots(
         X-space coordinates to highlight, or ``None`` to use the default.
     """
     one_d_data = _get_brownie_bee_1d_plot_safe(result, x_eval=selected_point)
-    histogram_entry = one_d_data[-1]
     for i, dim_data in enumerate(one_d_data[:-1]):
         plots.append(
             {"id": f"{prefix}_{i}", "plot": json_tricks.dumps({"data": dim_data})}
         )
+    mean, std = _histogram_mean_std(result, selected_point, one_d_data[-1])
     plots.append(
         {
             "id": f"{prefix}_{len(one_d_data) - 1}",
-            "plot": json_tricks.dumps(
-                {
-                    "histogram": {
-                        "mean": float(numpy.ravel(histogram_entry[0])[0]),
-                        "std": float(numpy.ravel(histogram_entry[1])[0]),
-                    }
-                }
-            ),
+            "plot": json_tricks.dumps({"histogram": {"mean": mean, "std": std}}),
         }
     )
+
+
+def _histogram_mean_std(
+    result: Any,
+    selected_point: "list[str | float] | None",
+    fallback_entry: Any,
+) -> "tuple[float, float]":
+    """Predicted-score mean/std for the histogram at ``selected_point``.
+
+    When no point is given, ``get_Brownie_Bee_1d_plot`` derives these from
+    ``expected_minimum`` (correct), so we reuse its last entry. For an explicit
+    point it instead predicts on the *raw* point — but the model is fitted in
+    transformed space, so the raw point lands outside the normalized domain and
+    the prediction collapses to the prior mean (constant across Pareto points)
+    for numeric spaces, and errors for categorical ones. Predict on the
+    transformed point here so the histogram actually tracks the selection.
+    """
+    if selected_point is None:
+        return (
+            float(numpy.ravel(fallback_entry[0])[0]),
+            float(numpy.ravel(fallback_entry[1])[0]),
+        )
+    model = result.models[-1]
+    mean, std = model.predict(
+        numpy.asarray(result.space.transform([selected_point])), return_std=True
+    )
+    return float(numpy.ravel(mean)[0]), float(numpy.ravel(std)[0])
 
 
 def emit_png_plots(
