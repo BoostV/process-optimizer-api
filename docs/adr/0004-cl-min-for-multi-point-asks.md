@@ -30,16 +30,24 @@ fitted-model batch took the slow path.
 
 ## Decision
 
-We will pass `strategy="cl_min"` for **all** multi-point asks, unconstrained and
-constrained alike, in `optimizer._compute_next_experiments`. For `n_points == 1`
-the strategy is irrelevant (ProcessOptimizer returns `_ask()` directly), so the
-single-suggestion behaviour is byte-for-byte unchanged. The constrained branch
-already used `cl_min`; this removes the only remaining caller of the default.
+`cl_min` (constant liar) is the **default** strategy for multi-point asks in
+`optimizer._compute_next_experiments`. For `n_points == 1` the strategy is
+irrelevant (ProcessOptimizer returns `_ask()` directly), so single-suggestion
+behaviour is byte-for-byte unchanged. Constant-liar optimizes the acquisition
+function through the GP — which handles categorical dimensions natively —
+instead of solving a high-dimensional Steinerberger problem, so it stays fast
+(sub-second to a few seconds) regardless of categorical cardinality.
 
-Constant-liar (`cl_min`) optimizes the acquisition function through the GP —
-which handles categorical dimensions natively — instead of solving a
-high-dimensional Steinerberger problem, so it stays fast (sub-second to a few
-seconds for typical batches) regardless of categorical cardinality.
+We still **opt into `stbr_fill`** (Steinerberger space-filling, the nicer
+exploration spread for extra batch points) when it is affordable: the request is
+unconstrained, `n_points > 1`, and a deterministic cost estimate is within a
+wall-clock budget (`STBR_TIME_BUDGET_SECONDS`, default 10s). The estimate
+(`_estimate_stbr_seconds`) is calibrated from benchmarks: cost is dominated
+*super-linearly* by categorical one-hot dimensions, mildly by continuous/discrete
+dimensions, and ~linearly by `n_points - 1`. It is a pure function of the space
+and batch size — **not** a wall-clock measurement — so the chosen strategy, and
+therefore the suggestions, stay reproducible across machines and load. Anything
+over budget (e.g. the motivating 31-dimension experiment) falls back to `cl_min`.
 
 ## Consequences
 
@@ -57,17 +65,26 @@ seconds for typical batches) regardless of categorical cardinality.
   the `SumEquals`). The frontend previously capped constrained experiments to a
   single suggestion because constrained multi-point was unsupported (it errored
   on the Steinerberger default); that cap can now be lifted.
-- We give up the Steinerberger space-filling option on the unconstrained batch
-  path. If we want it back as an *opt-in* for cheap (low-transformed-dimension)
-  experiments, that is a follow-up (e.g. a server-side dimensionality/time
-  budget gate), not a client choice.
+- Steinerberger space-filling is retained for cheap experiments via the
+  server-side budget gate, so low-dimensional experiments keep the nicer
+  exploration spread while categorical-heavy ones stay fast on `cl_min`. The
+  cost is a calibrated heuristic (`_estimate_stbr_seconds`) that must be
+  re-checked if the ProcessOptimizer/SciPy stack or reference hardware changes
+  materially.
 
 ## Alternatives considered
 
-- **Keep `stbr_fill`, but guard it** by transformed-dimensionality or an
-  estimated time budget and fall back to `cl_min` when too expensive. More
-  faithful to the original exploration intent, but more moving parts and a
-  heuristic threshold to maintain; deferred as a possible follow-up.
+- **Always `cl_min`, drop Steinerberger entirely.** Simplest, but loses the
+  exploration spread for the small experiments where it is both nice and cheap.
+  Rejected in favour of the budget gate.
+- **A wall-clock time budget** (run-then-timeout, or probe-one-restart and
+  extrapolate). Adapts to hardware, but makes the chosen strategy — and thus the
+  suggestions — depend on CPU speed and load, breaking reproducibility for a
+  seeded optimizer. Rejected in favour of a deterministic structural estimate.
+- **Gate on raw `transformed_n_dims`.** Rejected: continuous dimensions are
+  cheap (20 continuous dims ≈ 3s) while categorical one-hot dimensions are not
+  (10 one-hot ≈ 17s), so a single transformed-dimension threshold mis-predicts.
+  The estimate weights categorical load specifically.
 - **Expose `strategy` as a request/`extras` option** (default `cl_min`). Pushes
   a performance-critical, easily-misused knob to clients for a capability almost
   no caller needs; rejected in favour of a safe server-side default.

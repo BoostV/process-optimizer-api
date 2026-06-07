@@ -6,7 +6,14 @@ from unittest.mock import patch
 import copy
 import collections.abc
 import json
+import numpy as np
+from ProcessOptimizer import Optimizer
 from optimizerapi import optimizer_handler as optimizer
+from optimizerapi.optimizer import (
+    _choose_ask_strategy,
+    _compute_next_experiments,
+    _estimate_stbr_seconds,
+)
 from optimizerapi.securepickle import get_crypto, pickleToString, unpickleFromString
 
 sampleData = [
@@ -336,18 +343,53 @@ def test_when_using_constraints_strategy_cl_min_should_be_used(mock):
     instance.ask.assert_called_once_with(n_points=3, strategy="cl_min")
 
 
-@patch("optimizerapi.optimizer.Optimizer")
-def test_when_not_using_constraints_strategy_cl_min_should_be_used(mock):
-    # Multi-point asks must use the constant-liar (cl_min) strategy even
-    # without constraints. ProcessOptimizer's default strategy ("stbr_fill")
-    # routes a multi-point ask on a fitted model through stbr_scipy(), a
-    # Steinerberger space-filling solver that runs 20 scipy minimisations over
-    # the one-hot-encoded space. On mixed/categorical spaces that is
-    # pathologically slow (tens of minutes) and effectively hangs the request.
-    instance = mock.return_value
-    request = brownie_without_constraints
-    optimizer.run_optimizer(body=request)
-    instance.ask.assert_called_once_with(n_points=3, strategy="cl_min")
+def test_choose_ask_strategy_prefers_cl_min_unless_stbr_affordable():
+    # single point: strategy is irrelevant, use the safe default
+    assert _choose_ask_strategy(1, False, 0.0) == "cl_min"
+    # constraints: stbr_fill raises with constraints
+    assert _choose_ask_strategy(3, True, 0.1) == "cl_min"
+    # unconstrained batch, cheap enough -> opt into Steinerberger
+    assert _choose_ask_strategy(2, False, 5.0) == "stbr_fill"
+    # unconstrained batch, over budget -> fall back to cl_min
+    assert _choose_ask_strategy(2, False, 1000.0) == "cl_min"
+
+
+def test_estimate_stbr_seconds_dominated_by_categorical_load():
+    cont = Optimizer([(0.0, 5.0)] * 4, "GP", n_objectives=1).space
+    cat_heavy = Optimizer(
+        [(0.0, 5.0)] * 5 + [tuple("abcde")] * 5, "GP", n_objectives=1
+    ).space
+    cont_20 = Optimizer([(0.0, 5.0)] * 20, "GP", n_objectives=1).space
+    # a small continuous space is affordable; a categorical-heavy one is not
+    assert _estimate_stbr_seconds(cont, 2) <= 10
+    assert _estimate_stbr_seconds(cat_heavy, 2) > 10
+    # categorical one-hot load dwarfs an equivalent count of continuous dims
+    assert _estimate_stbr_seconds(cat_heavy, 2) > _estimate_stbr_seconds(cont_20, 2)
+
+
+def test_cheap_unconstrained_batch_uses_steinerberger():
+    # 4 continuous dims, fitted model, count 2: cheap -> stbr_fill, returns 2 pts.
+    space = [(0.0, 100.0)] * 4
+    opt = Optimizer(
+        space,
+        "GP",
+        n_initial_points=4,
+        acq_func="EI",
+        acq_func_kwargs={"kappa": 1.96, "xi": 0.01},
+        n_objectives=1,
+    )
+    rng = np.random.RandomState(3)
+    opt.tell(
+        rng.uniform(0, 100, size=(8, 4)).tolist(),
+        rng.uniform(0, 1, size=8).tolist(),
+    )
+    assert (
+        _choose_ask_strategy(2, False, _estimate_stbr_seconds(opt.space, 2))
+        == "stbr_fill"
+    )
+    nxt = _compute_next_experiments(opt, 2)
+    assert len(nxt) == 2
+    assert all(len(point) == len(space) for point in nxt)
 
 
 def test_multi_suggestion_without_constraints_terminates_quickly():
