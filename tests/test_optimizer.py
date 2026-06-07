@@ -6,7 +6,14 @@ from unittest.mock import patch
 import copy
 import collections.abc
 import json
+import numpy as np
+from ProcessOptimizer import Optimizer
 from optimizerapi import optimizer_handler as optimizer
+from optimizerapi.optimizer import (
+    _choose_ask_strategy,
+    _compute_next_experiments,
+    _estimate_stbr_seconds,
+)
 from optimizerapi.securepickle import get_crypto, pickleToString, unpickleFromString
 
 sampleData = [
@@ -336,12 +343,114 @@ def test_when_using_constraints_strategy_cl_min_should_be_used(mock):
     instance.ask.assert_called_once_with(n_points=3, strategy="cl_min")
 
 
-@patch("optimizerapi.optimizer.Optimizer")
-def test_when_not_using_constraints_standard_strategy_should_be_used(mock):
-    instance = mock.return_value
-    request = brownie_without_constraints
-    optimizer.run_optimizer(body=request)
-    instance.ask.assert_called_once_with(n_points=3)
+def test_choose_ask_strategy_prefers_cl_min_unless_stbr_affordable():
+    # single point: strategy is irrelevant, use the safe default
+    assert _choose_ask_strategy(1, False, 0.0) == "cl_min"
+    # constraints: stbr_fill raises with constraints
+    assert _choose_ask_strategy(3, True, 0.1) == "cl_min"
+    # unconstrained batch, cheap enough -> opt into Steinerberger
+    assert _choose_ask_strategy(2, False, 5.0) == "stbr_fill"
+    # unconstrained batch, over budget -> fall back to cl_min
+    assert _choose_ask_strategy(2, False, 1000.0) == "cl_min"
+
+
+def test_estimate_stbr_seconds_dominated_by_categorical_load():
+    cont = Optimizer([(0.0, 5.0)] * 4, "GP", n_objectives=1).space
+    cat_heavy = Optimizer(
+        [(0.0, 5.0)] * 5 + [tuple("abcde")] * 5, "GP", n_objectives=1
+    ).space
+    cont_20 = Optimizer([(0.0, 5.0)] * 20, "GP", n_objectives=1).space
+    # a small continuous space is affordable; a categorical-heavy one is not
+    assert _estimate_stbr_seconds(cont, 2) <= 10
+    assert _estimate_stbr_seconds(cat_heavy, 2) > 10
+    # categorical one-hot load dwarfs an equivalent count of continuous dims
+    assert _estimate_stbr_seconds(cat_heavy, 2) > _estimate_stbr_seconds(cont_20, 2)
+
+
+def test_cheap_unconstrained_batch_uses_steinerberger():
+    # 4 continuous dims, fitted model, count 2: cheap -> stbr_fill, returns 2 pts.
+    space = [(0.0, 100.0)] * 4
+    opt = Optimizer(
+        space,
+        "GP",
+        n_initial_points=4,
+        acq_func="EI",
+        acq_func_kwargs={"kappa": 1.96, "xi": 0.01},
+        n_objectives=1,
+    )
+    rng = np.random.RandomState(3)
+    opt.tell(
+        rng.uniform(0, 100, size=(8, 4)).tolist(),
+        rng.uniform(0, 1, size=8).tolist(),
+    )
+    assert (
+        _choose_ask_strategy(2, False, _estimate_stbr_seconds(opt.space, 2))
+        == "stbr_fill"
+    )
+    nxt = _compute_next_experiments(opt, 2)
+    assert len(nxt) == 2
+    assert all(len(point) == len(space) for point in nxt)
+
+
+def test_multi_suggestion_without_constraints_terminates_quickly():
+    # Regression for the stbr_fill hang: a fitted model (data >= initialPoints)
+    # with a categorical-heavy space and experimentSuggestionCount > 1 and no
+    # constraints. Under the old default strategy this ran for tens of minutes;
+    # with cl_min it returns in about a second. Guard with a watchdog so a
+    # regression fails fast instead of hanging the suite.
+    import signal
+
+    space = [
+        {"type": "continuous", "name": "a", "from": 0, "to": 5},
+        {"type": "continuous", "name": "b", "from": 0, "to": 5},
+        {"type": "continuous", "name": "c", "from": 0, "to": 5},
+        {"type": "category", "name": "T", "categories": ["95", "105", "115", "125"]},
+        {"type": "category", "name": "pH", "categories": ["4", "5", "6", "7"]},
+        {"type": "category", "name": "t", "categories": ["15", "25", "35", "45"]},
+    ]
+    # initialPoints == 4, supply 5 data points so the model is fitted and
+    # _n_initial_points < 1 (the condition that selects the stbr_scipy branch).
+    data = [
+        {"xi": [1.0, 2.0, 3.0, "95", "4", "15"], "yi": [1.0]},
+        {"xi": [2.0, 3.0, 1.0, "105", "5", "25"], "yi": [0.5]},
+        {"xi": [3.0, 1.0, 2.0, "115", "6", "35"], "yi": [0.8]},
+        {"xi": [4.0, 2.0, 1.0, "125", "7", "45"], "yi": [0.2]},
+        {"xi": [0.5, 4.0, 2.0, "95", "5", "35"], "yi": [0.6]},
+    ]
+    request = {
+        "extras": {
+            "experimentSuggestionCount": 2,
+            "graphs": ["single"],
+            "graphFormat": "json",
+            "includeModel": "false",
+        },
+        "data": data,
+        "optimizerConfig": {
+            "baseEstimator": "GP",
+            "acqFunc": "EI",
+            "initialPoints": 4,
+            "kappa": 1.96,
+            "xi": 0.01,
+            "space": space,
+            "constraints": [],
+        },
+    }
+
+    def _watchdog(signum, frame):
+        raise AssertionError(
+            "multi-suggestion run did not terminate within 60s — the slow "
+            "stbr_fill/stbr_scipy path has regressed"
+        )
+
+    signal.signal(signal.SIGALRM, _watchdog)
+    signal.alarm(60)
+    try:
+        result = optimizer.run_optimizer(body=request)
+    finally:
+        signal.alarm(0)
+
+    assert len(result["result"]["next"]) == 2
+    assert all(len(x) == len(space) for x in result["result"]["next"])
 
 
 def test_selectedPoint_single_objective_json():

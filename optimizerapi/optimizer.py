@@ -17,7 +17,7 @@ import json_tricks
 import matplotlib.pyplot as plt
 import numpy
 from ProcessOptimizer import Optimizer, expected_minimum
-from ProcessOptimizer.space import Real
+from ProcessOptimizer.space import Categorical, Real
 from ProcessOptimizer.space.constraints import SumEquals
 
 from typing import TYPE_CHECKING, Any, cast
@@ -87,9 +87,58 @@ def _parse_extras(extras: "Extras", logger: "logging.Logger") -> _ParsedExtras:
     )
 
 
+# Wall-clock budget for the Steinerberger (stbr_fill) space-filling path. We opt
+# into stbr_fill only when its estimated runtime fits this budget; otherwise we
+# use the always-cheap constant-liar (cl_min). Configurable for slower/faster
+# deployments. See ADR 0004.
+_STBR_TIME_BUDGET_SECONDS = float(os.getenv("STBR_TIME_BUDGET_SECONDS", "10"))
+
+
+def _estimate_stbr_seconds(space: Any, n_points: int) -> float:
+    """Estimate the wall-clock cost of the Steinerberger path for this batch.
+
+    For ``n_points > 1`` on a fitted model, ProcessOptimizer's ``stbr_fill``
+    strategy computes each extra point with ``stbr_scipy()`` — 20 SciPy
+    minimisations over the one-hot-transformed space. Benchmarking (CPython
+    venv, the reference deployment — NOT Pyodide) shows the cost is dominated
+    *super-linearly* by the categorical one-hot dimensions, only mildly by
+    continuous/discrete dimensions, and ~linearly by the number of extra points
+    (``n_points - 1``). The coefficients below are tuned to upper-bound the
+    measured runtimes near the budget knee, so the estimate is conservative
+    (it prefers the safe cl_min fallback when in doubt). It is a pure function
+    of the space and batch size, which keeps the chosen strategy — and thus the
+    suggestions — independent of machine speed/load (important for
+    reproducibility).
+    """
+    onehot = sum(
+        len(d.categories) for d in space.dimensions if isinstance(d, Categorical)
+    )
+    n_other = sum(1 for d in space.dimensions if not isinstance(d, Categorical))
+    per_point = 0.5 + 0.15 * n_other + 0.2 * onehot**2
+    return max(0, n_points - 1) * per_point
+
+
+def _choose_ask_strategy(
+    n_points: int, has_constraints: bool, stbr_estimate_seconds: float
+) -> str:
+    """Pick the ``ask`` strategy.
+
+    Constant-liar (``cl_min``) is the safe default: fast and categorical-safe.
+    We opt into Steinerberger (``stbr_fill``) space-filling — which gives a nicer
+    exploration spread for the extra batch points — only when the request is
+    unconstrained, actually a batch, and estimated to finish within budget.
+    (``stbr_fill`` raises with constraints, and the strategy is irrelevant for a
+    single point.)
+    """
+    if n_points <= 1 or has_constraints:
+        return "cl_min"
+    if stbr_estimate_seconds <= _STBR_TIME_BUDGET_SECONDS:
+        return "stbr_fill"
+    return "cl_min"
+
+
 def _compute_next_experiments(
     optimizer: Any,
-    cfg: "OptimizerConfig",
     n_points: int,
 ) -> list[list[str | float]]:
     """Ask the optimizer for the next N experiments, normalising the shape.
@@ -97,11 +146,17 @@ def _compute_next_experiments(
     ``optimizer.ask`` can return either a single experiment (flat list) or
     a list of experiments. We always return a list of lists.
     """
-    constraints = cfg.get("constraints", [])
-    if constraints:
-        next_exp = optimizer.ask(n_points=n_points, strategy="cl_min")
-    else:
-        next_exp = optimizer.ask(n_points=n_points)
+    has_constraints = optimizer.get_constraints() is not None
+    strategy = "cl_min"
+    if n_points > 1 and not has_constraints:
+        est = _estimate_stbr_seconds(optimizer.space, n_points)
+        strategy = _choose_ask_strategy(n_points, has_constraints, est)
+        logging.getLogger(__name__).info(
+            "multi-point ask n_points=%d -> strategy=%s "
+            "(stbr est %.1fs, budget %.0fs)",
+            n_points, strategy, est, _STBR_TIME_BUDGET_SECONDS,
+        )
+    next_exp = optimizer.ask(n_points=n_points, strategy=strategy)
     if next_exp and not any(isinstance(x, list) for x in next_exp):
         next_exp = [next_exp]
     return cast(list[list[str | float]], round_to_length_scales(next_exp, optimizer.space))
@@ -314,7 +369,7 @@ def process_result(
     parsed = _parse_extras(extras, logging.getLogger(__name__))
 
     result_details["next"] = _compute_next_experiments(
-        optimizer, cfg, parsed.experiment_suggestion_count
+        optimizer, parsed.experiment_suggestion_count
     )
 
     if len(data) >= cfg["initialPoints"]:
