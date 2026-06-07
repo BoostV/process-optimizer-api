@@ -337,11 +337,78 @@ def test_when_using_constraints_strategy_cl_min_should_be_used(mock):
 
 
 @patch("optimizerapi.optimizer.Optimizer")
-def test_when_not_using_constraints_standard_strategy_should_be_used(mock):
+def test_when_not_using_constraints_strategy_cl_min_should_be_used(mock):
+    # Multi-point asks must use the constant-liar (cl_min) strategy even
+    # without constraints. ProcessOptimizer's default strategy ("stbr_fill")
+    # routes a multi-point ask on a fitted model through stbr_scipy(), a
+    # Steinerberger space-filling solver that runs 20 scipy minimisations over
+    # the one-hot-encoded space. On mixed/categorical spaces that is
+    # pathologically slow (tens of minutes) and effectively hangs the request.
     instance = mock.return_value
     request = brownie_without_constraints
     optimizer.run_optimizer(body=request)
-    instance.ask.assert_called_once_with(n_points=3)
+    instance.ask.assert_called_once_with(n_points=3, strategy="cl_min")
+
+
+def test_multi_suggestion_without_constraints_terminates_quickly():
+    # Regression for the stbr_fill hang: a fitted model (data >= initialPoints)
+    # with a categorical-heavy space and experimentSuggestionCount > 1 and no
+    # constraints. Under the old default strategy this ran for tens of minutes;
+    # with cl_min it returns in about a second. Guard with a watchdog so a
+    # regression fails fast instead of hanging the suite.
+    import signal
+
+    space = [
+        {"type": "continuous", "name": "a", "from": 0, "to": 5},
+        {"type": "continuous", "name": "b", "from": 0, "to": 5},
+        {"type": "continuous", "name": "c", "from": 0, "to": 5},
+        {"type": "category", "name": "T", "categories": ["95", "105", "115", "125"]},
+        {"type": "category", "name": "pH", "categories": ["4", "5", "6", "7"]},
+        {"type": "category", "name": "t", "categories": ["15", "25", "35", "45"]},
+    ]
+    # initialPoints == 4, supply 5 data points so the model is fitted and
+    # _n_initial_points < 1 (the condition that selects the stbr_scipy branch).
+    data = [
+        {"xi": [1.0, 2.0, 3.0, "95", "4", "15"], "yi": [1.0]},
+        {"xi": [2.0, 3.0, 1.0, "105", "5", "25"], "yi": [0.5]},
+        {"xi": [3.0, 1.0, 2.0, "115", "6", "35"], "yi": [0.8]},
+        {"xi": [4.0, 2.0, 1.0, "125", "7", "45"], "yi": [0.2]},
+        {"xi": [0.5, 4.0, 2.0, "95", "5", "35"], "yi": [0.6]},
+    ]
+    request = {
+        "extras": {
+            "experimentSuggestionCount": 2,
+            "graphs": ["single"],
+            "graphFormat": "json",
+            "includeModel": "false",
+        },
+        "data": data,
+        "optimizerConfig": {
+            "baseEstimator": "GP",
+            "acqFunc": "EI",
+            "initialPoints": 4,
+            "kappa": 1.96,
+            "xi": 0.01,
+            "space": space,
+            "constraints": [],
+        },
+    }
+
+    def _watchdog(signum, frame):
+        raise AssertionError(
+            "multi-suggestion run did not terminate within 60s — the slow "
+            "stbr_fill/stbr_scipy path has regressed"
+        )
+
+    signal.signal(signal.SIGALRM, _watchdog)
+    signal.alarm(60)
+    try:
+        result = optimizer.run_optimizer(body=request)
+    finally:
+        signal.alarm(0)
+
+    assert len(result["result"]["next"]) == 2
+    assert all(len(x) == len(space) for x in result["result"]["next"])
 
 
 def test_selectedPoint_single_objective_json():

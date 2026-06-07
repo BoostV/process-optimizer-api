@@ -89,19 +89,24 @@ def _parse_extras(extras: "Extras", logger: "logging.Logger") -> _ParsedExtras:
 
 def _compute_next_experiments(
     optimizer: Any,
-    cfg: "OptimizerConfig",
     n_points: int,
 ) -> list[list[str | float]]:
     """Ask the optimizer for the next N experiments, normalising the shape.
 
     ``optimizer.ask`` can return either a single experiment (flat list) or
     a list of experiments. We always return a list of lists.
+
+    We always pass ``strategy="cl_min"`` (constant liar). For ``n_points == 1``
+    the strategy is irrelevant (ProcessOptimizer returns ``_ask()`` directly),
+    but for ``n_points > 1`` it matters a great deal: ProcessOptimizer's
+    default strategy (``"stbr_fill"``) routes a multi-point ask on a fitted
+    model through ``stbr_scipy()``, a Steinerberger space-filling solver that
+    runs 20 SciPy minimisations over the one-hot-encoded space. On
+    mixed/categorical spaces that is pathologically slow (tens of minutes) and
+    effectively hangs the request, whereas ``cl_min`` returns in about a
+    second. This is the same strategy the constrained path has always used.
     """
-    constraints = cfg.get("constraints", [])
-    if constraints:
-        next_exp = optimizer.ask(n_points=n_points, strategy="cl_min")
-    else:
-        next_exp = optimizer.ask(n_points=n_points)
+    next_exp = optimizer.ask(n_points=n_points, strategy="cl_min")
     if next_exp and not any(isinstance(x, list) for x in next_exp):
         next_exp = [next_exp]
     return cast(list[list[str | float]], round_to_length_scales(next_exp, optimizer.space))
@@ -314,7 +319,7 @@ def process_result(
     parsed = _parse_extras(extras, logging.getLogger(__name__))
 
     result_details["next"] = _compute_next_experiments(
-        optimizer, cfg, parsed.experiment_suggestion_count
+        optimizer, parsed.experiment_suggestion_count
     )
 
     if len(data) >= cfg["initialPoints"]:
